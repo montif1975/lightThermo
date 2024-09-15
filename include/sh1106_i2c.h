@@ -112,7 +112,7 @@ void SH1106_send_cmd(uint8_t cmd);
 void SH1106_send_cmd_list(uint8_t *buf, int num);
 void SH1106_send_buf(uint8_t buf[], int buflen);
 void SH1106_scroll(bool on);
-void render(uint8_t *buf, struct render_area *area);
+void sh1106_render(uint8_t *buf, struct render_area *area);
 //static void SetPixel(uint8_t *buf, int x,int y, bool on);
 //static void DrawLine(uint8_t *buf, int x0, int y0, int x1, int y1, bool on);
 //static int GetFontIndex(uint8_t ch);

@@ -10,10 +10,6 @@
 
 #include "include/sh1106_i2c.h"
 
-// change this to match your setup
-static const dht_model_t DHT_MODEL = DHT11;
-static const uint DATA_PIN = 15;
-
 // I2C defines
 // This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
 // Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
@@ -126,7 +122,7 @@ int main()
     calc_render_area_buflen(&frame_area);
 
     setup_display_layout(fb,SH1106_BUF_LEN);
-    render(fb, &frame_area);
+    sh1106_render(fb, &frame_area);
 
     SH1106_send_cmd(SH1106_SET_ENTIRE_ON); // go back to following RAM for pixel state
 
@@ -146,10 +142,10 @@ int main()
     SH1106_write_string(fb,50,0,id_string,8,8);
     SH1106_write_string(fb,98,0,connection_string,8,8);
 
-    SH1106_write_string(fb,0,16,test_string,16,16);
+    SH1106_write_string(fb,0,16,test_string,12,16);
     SH1106_write_string(fb,0,32,test_string,12,16);
 
-    render(fb, &frame_area);
+    sh1106_render(fb, &frame_area);
 
     // Sensor init (da sistemare)
     #define DHT20_I2C_ADDRESS       0x38
