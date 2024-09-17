@@ -130,7 +130,8 @@ int main()
     char *status_string = "OK";
     char *id_string = "Sala";
     char *connection_string ="No";
-    char *test_string = "1234";
+    char *test_string = "0123456789";
+    char *test_string2 = "23.95";
 
 #if 0
     WriteString(fb, 2, 0, status_string);
@@ -143,7 +144,7 @@ int main()
     SH1106_write_string(fb,98,0,connection_string,8,8);
 
     SH1106_write_string(fb,0,16,test_string,12,16);
-    SH1106_write_string(fb,0,32,test_string,12,16);
+    SH1106_write_string(fb,0,32,test_string2,12,16);
 
     sh1106_render(fb, &frame_area);
 
