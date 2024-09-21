@@ -178,13 +178,31 @@ static uint8_t font_16p12[] = {
    GND (pin 38)  -> GND on display board
 */
 
+static sh1106_area_descr_t lighThermo_display_area[SH1106_AREA_ID_MAX] = {
+    {
+        .first_page = FIRST_PAGE_STATUS_BAR,
+        .size = NPAGE_STATUS_BAR,
+    },
+    {
+        .first_page = FIRST_PAGE_INFO_AREA,
+        .size = NPAGE_INFO_AREA,
+    },
+    {
+        .first_page = FIRST_PAGE_EXTRA_INFO_AREA,
+        .size = NPAGE_EXTRA_INFO_AREA,
+    }
+};
 
-void calc_render_area_buflen(struct render_area *area) {
+#if 0
+void calc_render_area_buflen(struct render_area *area)
+{
     // calculate how long the flattened buffer will be for a render area
     area->buflen = (area->end_col - area->start_col + 1) * (area->end_page - area->start_page + 1);
 }
+#endif
 
-void SH1106_send_cmd(uint8_t cmd) {
+void SH1106_send_cmd(uint8_t cmd)
+{
     // I2C write process expects a control byte followed by data
     // this "data" can be a command or data to follow up a command
     // Co = 1, D/C = 0 => the driver expects a command
@@ -192,12 +210,14 @@ void SH1106_send_cmd(uint8_t cmd) {
     i2c_write_blocking(i2c_default, SH1106_I2C_ADDR, buf, 2, false);
 }
 
-void SH1106_send_cmd_list(uint8_t *buf, int num) {
+void SH1106_send_cmd_list(uint8_t *buf, int num)
+{
     for (int i=0;i<num;i++)
         SH1106_send_cmd(buf[i]);
 }
 
-void SH1106_send_buf(uint8_t buf[], int buflen) {
+void SH1106_send_buf(uint8_t buf[], int buflen)
+{
     // in horizontal addressing mode, the column address pointer auto-increments
     // and then wraps around to the next page, so we can send the entire frame
     // buffer in one gooooooo!
@@ -215,7 +235,8 @@ void SH1106_send_buf(uint8_t buf[], int buflen) {
     free(temp_buf);
 }
 
-void SH1106_init() {
+void SH1106_init()
+{
     // Some of these commands are not strictly necessary as the reset
     // process defaults to some of these but they are shown here
     // to demonstrate what the initialization sequence looks like
@@ -264,7 +285,8 @@ void SH1106_init() {
     SH1106_send_cmd_list(cmds, count_of(cmds));
 }
 
-void SH1106_scroll(bool on) {
+void SH1106_scroll(bool on)
+{
     // configure horizontal scrolling
     uint8_t cmds[] = {
         SH1106_SET_HORIZ_SCROLL | 0x00,
@@ -280,19 +302,25 @@ void SH1106_scroll(bool on) {
     SH1106_send_cmd_list(cmds, count_of(cmds));
 }
 
-void sh1106_render(uint8_t *buf, struct render_area *area) {
+void SH1106_area_render(uint8_t *buf, uint8_t area_id)
+{
+
+}
+
+void SH1106_full_render(uint8_t *buf)
+{
     // update a portion of the display with a render area
 	int p = 0;
     int i; 
 	char height = 64;
-	char width = 132; 
+//	char width = 132; 
 	char m_row = 0;
 	char m_col = 2;
     uint8_t cmd;
 
 	// divido per 8
 	height >>= 3;
-	width >>= 3;
+//	width >>= 3;
 
     uint8_t cmds[] = {
         (SH1106_SETLOWCOLUMN | 0x0),
@@ -302,7 +330,8 @@ void sh1106_render(uint8_t *buf, struct render_area *area) {
     printf("CMD=%02X\nCMD=%02X\nCMD=%02X\n",cmds[0],cmds[1],cmds[2]);
     SH1106_send_cmd_list(cmds, count_of(cmds));
 
-	for ( i = 0; i < height; i++) {
+	for (i = 0; i < height; i++)
+    {
 		
 		// send all the page in one shot
         // set page address
@@ -413,9 +442,27 @@ static inline int GetFontIndex(uint8_t ch) {
     }
     else return  0; // Not got that char so space.
 }
-
-
 #endif
+
+static inline void SH1106_clean_area(uint8_t *buf, uint16_t x_start,uint16_t x_end,uint16_t y_high)
+{
+//    uint16_t x_pos;
+    int i;
+
+    if(x_start/SH1106_WIDTH == x_end/SH1106_WIDTH)
+    {
+        // start and end on the same line
+        for(i=x_start; i<x_end; i++)
+            buf[i] = 0x0;
+    }
+    else
+    {
+        // TODO!
+    }
+
+    return;
+}
+
 
 static inline int sh1106_get_font_index(uint8_t ch, int font_h)
 {
@@ -473,7 +520,7 @@ static int SH1106_write_char(uint8_t *buf, int16_t x, int16_t y, uint8_t ch, uin
         break;
 
     case FONT_HIGH_16:
-        // in this case a character fit in two page
+        // in this case a character fit in two pages
         // write the first page
 #if 0
         // 16x16 pixel        
@@ -487,7 +534,7 @@ static int SH1106_write_char(uint8_t *buf, int16_t x, int16_t y, uint8_t ch, uin
             buf[fb_idx++] = font_16[idx * 32 + 16 + i];
         }
 #else
-        // 12x16 pixel (caratteri più vicini) 
+        // 12x16 pixel
         for (i=0; i<font_l; i++) {
             buf[fb_idx++] = font_16p12[idx * (font_l*2) + i];
         }
@@ -532,6 +579,70 @@ int SH1106_write_string(uint8_t *buf, int16_t x, int16_t y, char *str, uint8_t f
         else
             break;
     }
+
+    return ret;
+}
+
+int SH1106_display_temperature(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h)
+{
+    int ret = 0;
+    uint8_t nchar = 0;
+    int16_t x_start_pos = 0;
+    int16_t x_start_buf = 0;
+
+    // calculate the number of characters/icons that fit into single line
+    nchar = SH1106_WIDTH / font_l;
+    if(nchar < (strlen(str) + 1))
+    {
+        // str doesn't fit in a single line
+        ret = -1;
+        return ret;
+    }
+    printf("nchar=%d\n",nchar);
+
+    // calculate the position of first characters aligning to the right
+    // and leave the space to the right for the icons (°C or °F).
+    x_start_pos = (nchar - (strlen(str) + 1))*font_l;
+    printf("x_start_pos=%d\n",x_start_pos);
+    // calculate the position in the buffer
+    x_start_buf = (FIRST_PAGE_INFO_AREA * SH1106_WIDTH) + x_start_pos;
+    printf("x_start_buf=%d\n",x_start_buf);
+
+    // clean the line before start point to delete previous value
+    SH1106_clean_area(buf,(FIRST_PAGE_INFO_AREA * SH1106_WIDTH),x_start_buf,font_h);
+    ret = SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*FIRST_PAGE_INFO_AREA,str,font_l,font_h); 
+
+    return ret;
+}
+
+int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h)
+{
+    int ret = 0;
+    uint8_t nchar = 0;
+    int16_t x_start_pos = 0;
+    int16_t x_start_buf = 0;
+
+    // calculate the number of characters/icons that fit into single line
+    nchar = SH1106_WIDTH / font_l;
+    if(nchar < (strlen(str) + 1))
+    {
+        // str doesn't fit in a single line
+        ret = -1;
+        return ret;
+    }
+    printf("nchar=%d\n",nchar);
+
+    // calculate the position of first characters aligning to the right
+    // and leave the space to the right for the icons (°C or °F).
+    x_start_pos = (nchar - (strlen(str) + 1))*font_l;
+    printf("x_start_pos=%d\n",x_start_pos);
+    // calculate the position in the buffer
+    x_start_buf = ((FIRST_PAGE_INFO_AREA + 2) * SH1106_WIDTH) + x_start_pos;
+    printf("x_start_buf=%d\n",x_start_buf);
+
+    // clean the line before start point to delete previous value
+    SH1106_clean_area(buf,((FIRST_PAGE_INFO_AREA + 2) * SH1106_WIDTH),x_start_buf,font_h);
+    ret = SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*(FIRST_PAGE_INFO_AREA + 2),str,font_l,font_h); 
 
     return ret;
 }

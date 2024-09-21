@@ -96,7 +96,36 @@ SH1106 OLED DISPLAY DRIVER
 #define FONT_HIGH_16                16
 #define FONT_HIGH_24                24
 
-struct render_area {
+// Definition of display areas
+// build the entire display layout (status bar + info area + extra info area)
+// __________________
+// |_____|_____|____|   2 pages - Status Bar (status + ID + Connection state)
+// |                |   4 pages - Info Area
+// |________________|
+// |________________|   2 pages - extra info area
+//  
+#define FIRST_PAGE_STATUS_BAR       0
+#define NPAGE_STATUS_BAR            2
+#define FIRST_PAGE_INFO_AREA        (FIRST_PAGE_STATUS_BAR + NPAGE_STATUS_BAR)
+#define NPAGE_INFO_AREA             4
+#define FIRST_PAGE_EXTRA_INFO_AREA  (FIRST_PAGE_INFO_AREA + NPAGE_INFO_AREA)
+#define NPAGE_EXTRA_INFO_AREA       2
+
+enum sh1106_area_id {
+    SH1106_AREA_STATUS_BAR_ID,
+    SH1106_AREA_INFO_AREA_ID,
+    SH1106_AREA_EXTRA_INFO_AREA_ID,
+    SH1106_AREA_ID_MAX
+};
+
+typedef struct sh1106_area_descr {
+    uint8_t first_page;
+    uint8_t size;
+} sh1106_area_descr_t;
+
+#if 0
+struct render_area
+{
     uint8_t start_col;
     uint8_t end_col;
     uint8_t start_page;
@@ -104,18 +133,21 @@ struct render_area {
 
     int buflen;
 };
+#endif
 
 // forward declaration
-void calc_render_area_buflen(struct render_area *area);
+//void calc_render_area_buflen(struct render_area *area);
 void SH1106_init();
 void SH1106_send_cmd(uint8_t cmd);
 void SH1106_send_cmd_list(uint8_t *buf, int num);
 void SH1106_send_buf(uint8_t buf[], int buflen);
 void SH1106_scroll(bool on);
-void sh1106_render(uint8_t *buf, struct render_area *area);
+void SH1106_full_render(uint8_t *buf);
 //static void SetPixel(uint8_t *buf, int x,int y, bool on);
 //static void DrawLine(uint8_t *buf, int x0, int y0, int x1, int y1, bool on);
 //static int GetFontIndex(uint8_t ch);
 //static void WriteChar(uint8_t *buf, int16_t x, int16_t y, uint8_t ch);
 void WriteString(uint8_t *buf, int16_t x, int16_t y, char *str);
 int SH1106_write_string(uint8_t *buf, int16_t x, int16_t y, char *str, uint8_t font_l, uint8_t font_h);
+int SH1106_display_temperature(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);
+int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);

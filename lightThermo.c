@@ -21,6 +21,8 @@
 #define I2C_SDA_SENS            14
 #define I2C_SCL_SENS            15
 
+#define PRG_VERSION             "0.0.1"
+#define SENS_TYPE               "DHT20"
 
 #if 0
 #include "blink.pio.h"
@@ -41,7 +43,7 @@ static float celsius_to_fahrenheit(float temperature) {
     return temperature * (9.0f / 5) + 32;
 }
 
-void setup_display_layout(uint8_t *buf, int fb_size)
+void SH1106_setup_display_layout(uint8_t *buf, int fb_size)
 {
     int i;
 
@@ -66,6 +68,20 @@ void setup_display_layout(uint8_t *buf, int fb_size)
         buf[i] = 0x01;
 
     return;
+}
+
+void show_boot_info(uint8_t *buf,int fb_size)
+{
+    char boot_string[16];
+
+    memset(buf, 0, fb_size);
+    memset(boot_string,0,sizeof(boot_string));
+    sprintf(boot_string,"Vers %s",PRG_VERSION);
+    SH1106_write_string(buf,8,24,boot_string,FONT_HIGH_8,FONT_HIGH_8);
+    memset(boot_string,0,sizeof(boot_string));
+    sprintf(boot_string,"Sens %s",SENS_TYPE);
+    SH1106_write_string(buf,8,40,boot_string,FONT_HIGH_8,FONT_HIGH_8);
+
 }
 
 int main()
@@ -112,6 +128,7 @@ int main()
     SH1106_init();
 
     // Initialize render area for entire frame (SH1106_WIDTH pixels by SH1106_NUM_PAGES pages)
+#if 0
     struct render_area frame_area = {
         start_col: 0,
         end_col : SH1106_WIDTH - 1,
@@ -120,9 +137,15 @@ int main()
         };
 
     calc_render_area_buflen(&frame_area);
+#endif
 
-    setup_display_layout(fb,SH1106_BUF_LEN);
-    sh1106_render(fb, &frame_area);
+    // splash screen at boot
+    show_boot_info(fb,SH1106_BUF_LEN);
+    SH1106_full_render(fb);
+    sleep_ms(2000);
+
+    SH1106_setup_display_layout(fb,SH1106_BUF_LEN);
+    SH1106_full_render(fb);
 
     SH1106_send_cmd(SH1106_SET_ENTIRE_ON); // go back to following RAM for pixel state
 
@@ -130,10 +153,10 @@ int main()
     char *status_string = "OK";
     char *id_string = "Sala";
     char *connection_string ="No";
+#if 0
     char *test_string = "0123456789";
     char *test_string2 = "23.95";
 
-#if 0
     WriteString(fb, 2, 0, status_string);
     WriteString(fb, 50, 0, id_string);
     WriteString(fb, 98, 0, connection_string);
@@ -142,11 +165,8 @@ int main()
     SH1106_write_string(fb,2,0,status_string,8,8);
     SH1106_write_string(fb,50,0,id_string,8,8);
     SH1106_write_string(fb,98,0,connection_string,8,8);
+    SH1106_full_render(fb);
 
-    SH1106_write_string(fb,0,16,test_string,12,16);
-    SH1106_write_string(fb,0,32,test_string2,12,16);
-
-    sh1106_render(fb, &frame_area);
 
     // Sensor init (da sistemare)
     #define DHT20_I2C_ADDRESS       0x38
@@ -158,6 +178,8 @@ int main()
     int humidity = 0;
     float temp, hum;
     uint8_t buf[6] = {DHT20_READ,0,0,0,0,0};
+    char appo_string[10];
+
     i2c_write_blocking(I2C_PORT_SENS,DHT20_I2C_ADDRESS,buf,1,false);
     memset(buf,0x0,sizeof(buf));
     sleep_ms(100);
@@ -195,6 +217,13 @@ int main()
             temp = (((float)temperature / 1048576)*200)-50;
             printf("*** TEMPERATURE = %.2f C\n",temp);
             printf("*** HUMIDITY = %.2f %%RH\n",hum);
+            memset(appo_string,0,sizeof(appo_string));
+            sprintf(appo_string,"%.2f",temp);
+            SH1106_display_temperature(fb,appo_string,12,FONT_HIGH_16);
+            memset(appo_string,0,sizeof(appo_string));
+            sprintf(appo_string,"%.2f",hum);
+            SH1106_display_humidity(fb,appo_string,12,FONT_HIGH_16);
+            SH1106_full_render(fb);
         } while(true);
     }
     else
