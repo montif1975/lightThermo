@@ -21,7 +21,7 @@
 #define I2C_SDA_SENS            14
 #define I2C_SCL_SENS            15
 
-#define PRG_VERSION             "0.0.1"
+#define PRG_VERSION             "001"
 #define SENS_TYPE               "DHT20"
 
 #if 0
@@ -66,6 +66,11 @@ void SH1106_setup_display_layout(uint8_t *buf, int fb_size)
     // build orizontal line between Info area and extra info bar
     for (i=768; i<896; i++)
         buf[i] = 0x01;
+    // add icons to the Info Area
+    SH1106_write_icon(buf, 0, 16, SH1106_ICON_TERMOMETER, FONT_WIDTH_12, FONT_HIGH_16);
+    SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 16, SH1106_ICON_CELSIUS, FONT_WIDTH_12, FONT_HIGH_16);
+    SH1106_write_icon(buf, 0, 32, SH1106_ICON_DROP, FONT_WIDTH_12, FONT_HIGH_16);
+    SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 32, SH1106_ICON_PERCENT, FONT_WIDTH_12, FONT_HIGH_16);
 
     return;
 }

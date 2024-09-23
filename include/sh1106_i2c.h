@@ -96,6 +96,12 @@ SH1106 OLED DISPLAY DRIVER
 #define FONT_HIGH_16                16
 #define FONT_HIGH_24                24
 
+#define FONT_WIDTH_8                8
+#define FONT_WIDTH_12               12
+#define FONT_WIDTH_16               16
+#define FONT_WIDTH_24               24
+
+
 // Definition of display areas
 // build the entire display layout (status bar + info area + extra info area)
 // __________________
@@ -122,6 +128,16 @@ typedef struct sh1106_area_descr {
     uint8_t first_page;
     uint8_t size;
 } sh1106_area_descr_t;
+
+typedef enum SH1106_ICONS {
+    SH1106_ICON_CELSIUS,
+    SH1106_ICON_FAHRENHEIT,
+    SH1106_ICON_PERCENT,
+    SH1106_ICON_TERMOMETER,
+    SH1106_ICON_DROP,
+    SH1106_ICON_MAX
+} sh1106_icons_t;
+
 
 #if 0
 struct render_area
@@ -151,3 +167,4 @@ void WriteString(uint8_t *buf, int16_t x, int16_t y, char *str);
 int SH1106_write_string(uint8_t *buf, int16_t x, int16_t y, char *str, uint8_t font_l, uint8_t font_h);
 int SH1106_display_temperature(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);
 int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);
+int SH1106_write_icon(uint8_t *buf, int16_t x, int16_t y, uint8_t id_icon, uint8_t font_l, uint8_t font_h);
