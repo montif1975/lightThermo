@@ -30,11 +30,9 @@ project(lightThermo C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-add_subdirectory(dht)
-
 # Add executable. Default name is the project name, version 0.1
 include_directories(. ./include)
-add_executable(lightThermo lightThermo.c sh1106_i2c.c)
+add_executable(lightThermo lightThermo.c sh1106_i2c.c dht20.c)
 
 pico_set_program_name(lightThermo "lightThermo")
 pico_set_program_version(lightThermo "0.1")
@@ -62,7 +60,6 @@ target_compile_options(lightThermo PRIVATE -Wall)
 target_link_libraries(lightThermo 
         hardware_i2c
         hardware_pio
-        dht
         )
 
 pico_add_extra_outputs(lightThermo)

@@ -184,6 +184,7 @@ static uint8_t icons_16p12[] = {
    GND (pin 38)  -> GND on display board
 */
 
+#if 0
 static sh1106_area_descr_t lighThermo_display_area[SH1106_AREA_ID_MAX] = {
     {
         .first_page = FIRST_PAGE_STATUS_BAR,
@@ -199,7 +200,6 @@ static sh1106_area_descr_t lighThermo_display_area[SH1106_AREA_ID_MAX] = {
     }
 };
 
-#if 0
 void calc_render_area_buflen(struct render_area *area)
 {
     // calculate how long the flattened buffer will be for a render area
@@ -318,15 +318,13 @@ void SH1106_full_render(uint8_t *buf)
     // update a portion of the display with a render area
 	int p = 0;
     int i; 
-	char height = 64;
-//	char width = 132; 
+	char height = SH1106_HEIGHT;
 	char m_row = 0;
-	char m_col = 2;
+	char m_col = 2; // because internally there are 132 columns, 2 + 128 + 2 but only 128 are visible
     uint8_t cmd;
 
-	// divido per 8
+	// divide by 8
 	height >>= 3;
-//	width >>= 3;
 
     uint8_t cmds[] = {
         (SH1106_SETLOWCOLUMN | 0x0),
@@ -337,8 +335,7 @@ void SH1106_full_render(uint8_t *buf)
     SH1106_send_cmd_list(cmds, count_of(cmds));
 
 	for (i = 0; i < height; i++)
-    {
-		
+    {		
 		// send all the page in one shot
         // set page address
         cmd = (SH1106_SET_PAGE_ADDR + i + m_row);
@@ -411,43 +408,6 @@ static void DrawLine(uint8_t *buf, int x0, int y0, int x1, int y1, bool on) {
         }
     }
 }
-
-static void WriteChar(uint8_t *buf, int16_t x, int16_t y, uint8_t ch) {
-    if (x > SH1106_WIDTH - 8 || y > SH1106_HEIGHT - 8)
-        return;
-
-    // For the moment, only write on Y row boundaries (every 8 vertical pixels)
-    y = y/8;
-
-    ch = toupper(ch);
-    int idx = GetFontIndex(ch);
-    int fb_idx = y * 128 + x;
-
-    for (int i=0;i<8;i++) {
-        buf[fb_idx++] = font8[idx * 8 + i];
-    }
-}
-
-void WriteString(uint8_t *buf, int16_t x, int16_t y, char *str) {
-    // Cull out any string off the screen
-    if (x > SH1106_WIDTH - 8 || y > SH1106_HEIGHT - 8)
-        return;
-
-    while (*str) {
-        WriteChar(buf, x, y, *str++);
-        x+=8;
-    }
-}
-
-static inline int GetFontIndex(uint8_t ch) {
-    if (ch >= 'A' && ch <='Z') {
-        return  ch - 'A' + 1;
-    }
-    else if (ch >= '0' && ch <='9') {
-        return  ch - '0' + 27;
-    }
-    else return  0; // Not got that char so space.
-}
 #endif
 
 static inline void SH1106_clean_area(uint8_t *buf, uint16_t x_start,uint16_t x_end,uint16_t y_high)
@@ -470,7 +430,7 @@ static inline void SH1106_clean_area(uint8_t *buf, uint16_t x_start,uint16_t x_e
 }
 
 
-static inline int sh1106_get_font_index(uint8_t ch, int font_h)
+static inline int SH1106_get_font_index(uint8_t ch, int font_h)
 {
     int idx = 0;
 
@@ -560,7 +520,7 @@ static int SH1106_write_char(uint8_t *buf, int16_t x, int16_t y, uint8_t ch, uin
 
     // for the moment the fonts are only with capital letters
     ch = toupper(ch);
-    idx = sh1106_get_font_index(ch, font_h);
+    idx = SH1106_get_font_index(ch, font_h);
     fb_idx = y * SH1106_WIDTH + x;
 
     switch (font_h)
@@ -701,3 +661,50 @@ int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font
 
     return ret;
 }
+
+void SH1106_setup_display_layout(uint8_t *buf, int fb_size)
+{
+    int i;
+
+    // build the entire display layout (status bar + info area + extra info area)
+    // __________________
+    // |_____|_____|____|   2 pages - Status Bar (status + ID + Connection state)
+    // |                |   4 pages - Info Area
+    // |________________|
+    // |________________|   2 pages - extra info area
+    //  
+    memset(buf, 0, fb_size);
+    // build vertical line between status and ID field
+    buf[48] = 0xFF; 
+    buf[96] = 0xFF;  
+    // build orizontal line between Status bar and Info area
+    for (i=128; i<256; i++)
+        buf[i] = 0x80;
+    buf[176] = 0xFF;
+    buf[224] = 0xFF;
+    // build orizontal line between Info area and extra info bar
+    for (i=768; i<896; i++)
+        buf[i] = 0x01;
+    // add icons to the Info Area
+    SH1106_write_icon(buf, 0, 16, SH1106_ICON_TERMOMETER, FONT_WIDTH_12, FONT_HIGH_16);
+    SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 16, SH1106_ICON_CELSIUS, FONT_WIDTH_12, FONT_HIGH_16);
+    SH1106_write_icon(buf, 0, 32, SH1106_ICON_DROP, FONT_WIDTH_12, FONT_HIGH_16);
+    SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 32, SH1106_ICON_PERCENT, FONT_WIDTH_12, FONT_HIGH_16);
+
+    return;
+}
+
+void SH1106_show_boot_info(uint8_t *buf,int fb_size,char *prg_vers,char *sens_type)
+{
+    char boot_string[16];
+
+    memset(buf, 0, fb_size);
+    memset(boot_string,0,sizeof(boot_string));
+    sprintf(boot_string,"Vers %s",prg_vers);
+    SH1106_write_string(buf,8,24,boot_string,FONT_HIGH_8,FONT_HIGH_8);
+    memset(boot_string,0,sizeof(boot_string));
+    sprintf(boot_string,"Sens %s",sens_type);
+    SH1106_write_string(buf,8,40,boot_string,FONT_HIGH_8,FONT_HIGH_8);
+
+}
+
