@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     // only for test
     char *status_string = "OK";
     char *id_string = "Sala";
-    char *connection_string ="No";
+//    char *connection_string ="No";
 
 
     stdio_init_all();
@@ -97,7 +97,8 @@ int main(int argc, char *argv[])
 
     SH1106_write_string(fb,2,0,status_string,8,8);
     SH1106_write_string(fb,50,0,id_string,8,8);
-    SH1106_write_string(fb,98,0,connection_string,8,8);
+ //   SH1106_write_string(fb,98,0,connection_string,8,8);
+    SH1106_write_icon(fb, 98, 0, SH1106_ICON_WIFI_CONNECTED, FONT_WIDTH_12, FONT_HIGH_16);
     SH1106_full_render(fb);
 
 
