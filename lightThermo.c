@@ -9,9 +9,7 @@
 
 #include "include/sh1106_i2c.h"
 #include "include/dht20.h"
-
-#define PRG_VERSION             "001"
-#define SENS_TYPE               "DHT20"
+#include "include/lightThermo.h"
 
 /*
  * Function: C2F
@@ -35,7 +33,6 @@ int main(int argc, char *argv[])
     char *status_string = "OK";
     char *id_string = "Sala";
 //    char *connection_string ="No";
-
 
     stdio_init_all();
 
@@ -81,26 +78,29 @@ int main(int argc, char *argv[])
     SH1106_full_render(fb);
     sleep_ms(2000);
 
+#ifdef DEBUG_FONTS
+    char *test_string_1 = "ABCDEFGHIJ";
+    char *test_string_2 = "KLMNOPQRST";
+    char *test_string_3 = "UVWXYZ";
+
+    memset(fb,0,sizeof(fb));
+    SH1106_write_string(fb, 0, 0, test_string_1,FONT_WIDTH_12,FONT_HIGH_16);
+    SH1106_write_string(fb, 0, 16, test_string_2,FONT_WIDTH_12,FONT_HIGH_16);
+    SH1106_write_string(fb, 0, 32, test_string_3,FONT_WIDTH_12,FONT_HIGH_16);
+    SH1106_full_render(fb);
+    sleep_ms(10000);
+#endif
+
     SH1106_setup_display_layout(fb,SH1106_BUF_LEN);
     SH1106_full_render(fb);
 
     SH1106_send_cmd(SH1106_SET_ENTIRE_ON); // go back to following RAM for pixel state
 
-#ifdef DEBUG_FONTS
-    char *test_string = "0123456789";
-    char *test_string2 = "23.95";
-
-    WriteString(fb, 2, 0, status_string);
-    WriteString(fb, 50, 0, id_string);
-    WriteString(fb, 98, 0, connection_string);
-#endif
-
     SH1106_write_string(fb,2,0,status_string,8,8);
     SH1106_write_string(fb,50,0,id_string,8,8);
  //   SH1106_write_string(fb,98,0,connection_string,8,8);
-    SH1106_write_icon(fb, 98, 0, SH1106_ICON_WIFI_CONNECTED, FONT_WIDTH_12, FONT_HIGH_16);
+ //   SH1106_write_icon(fb, 98, 0, SH1106_ICON_WIFI_CONNECTED, FONT_WIDTH_12, FONT_HIGH_16);
     SH1106_full_render(fb);
-
 
     // Sensor init
     ret = DHT20_init();
@@ -119,10 +119,10 @@ int main(int argc, char *argv[])
                     sprintf(appo_string,"%.2f",temperature);
                 else
                     sprintf(appo_string,"%.2f",C2F(temperature));
-                SH1106_display_temperature(fb,appo_string,12,FONT_HIGH_16);
+                SH1106_display_temperature(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
                 memset(appo_string,0,sizeof(appo_string));
                 sprintf(appo_string,"%.2f",humidity);
-                SH1106_display_humidity(fb,appo_string,12,FONT_HIGH_16);
+                SH1106_display_humidity(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
                 SH1106_full_render(fb);
             }
         } while (true);
