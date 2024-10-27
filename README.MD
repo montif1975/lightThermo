@@ -27,4 +27,8 @@ the I2C interface:
     - *SCL* to PIN 20 of PICO (GP15 = SCL)
     - *SDA* to PIN 19 of PICO (GP14 = SDA)
 Obviously, all connections can be changed.
- 
+
+## How it show the temperature and humidity
+
+In the figure below an example of the result.
+![lightThermo in action](/resorces/lightThermo_1.png "a simple demo")
