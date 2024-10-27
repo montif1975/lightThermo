@@ -25,7 +25,8 @@ the I2C interface:
     - *+* to PIN 36 of PICO (3V3)
     - *-* to PIN 38 of PICO (GND)
     - *SCL* to PIN 20 of PICO (GP15 = SCL)
-    - *SDA* to PIN 19 of PICO (GP14 = SDA)
+    - *SDA* to PIN 19 of PICO (GP14 = SDA)  
+    
 Obviously, all connections can be changed.
 
 ## How it show the temperature and humidity
