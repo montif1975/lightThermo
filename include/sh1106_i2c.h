@@ -1,21 +1,15 @@
 /* SH1106 OLED DISPLAY DRIVER VIA I2C*/
 #include "hardware/i2c.h"
 
-#define I2C_PORT_OLED           i2c0
-#define I2C_SDA_OLED            8
-#define I2C_SCL_OLED            9
+#define I2C_PORT_OLED               i2c0
+#define I2C_SDA_OLED                8
+#define I2C_SCL_OLED                9
 
-
-// Define the size of the display we have attached. This can vary, make sure you
-// have the right size defined or the output will look rather odd!
-// Code has been tested on 128x32 and 128x64 OLED displays
 #define SH1106_HEIGHT               64
 #define SH1106_WIDTH                128 // internally is 132
 
 #define SH1106_I2C_ADDR             _u(0x3C)
 
-// 400 is usual, but often these can be overclocked to improve display response.
-// Tested at 1000 on both 32 and 84 pixel height devices and it worked.
 #define SH1106_I2C_CLK              400
 
 // commands (see datasheet)
@@ -67,7 +61,6 @@
 #define FONT_WIDTH_16               16
 #define FONT_WIDTH_24               24
 
-
 // Definition of display areas
 // build the entire display layout (status bar + info area + extra info area)
 // __________________
@@ -105,32 +98,13 @@ typedef enum SH1106_ICONS {
     SH1106_ICON_MAX
 } sh1106_icons_t;
 
-
-#if 0
-struct render_area
-{
-    uint8_t start_col;
-    uint8_t end_col;
-    uint8_t start_page;
-    uint8_t end_page;
-
-    int buflen;
-};
-#endif
-
 // forward declaration
-//void calc_render_area_buflen(struct render_area *area);
 void SH1106_init();
 void SH1106_send_cmd(uint8_t cmd);
 void SH1106_send_cmd_list(uint8_t *buf, int num);
 void SH1106_send_buf(uint8_t buf[], int buflen);
 void SH1106_scroll(bool on);
 void SH1106_full_render(uint8_t *buf);
-//static void SetPixel(uint8_t *buf, int x,int y, bool on);
-//static void DrawLine(uint8_t *buf, int x0, int y0, int x1, int y1, bool on);
-//static int GetFontIndex(uint8_t ch);
-//static void WriteChar(uint8_t *buf, int16_t x, int16_t y, uint8_t ch);
-//void WriteString(uint8_t *buf, int16_t x, int16_t y, char *str);
 int SH1106_write_string(uint8_t *buf, int16_t x, int16_t y, char *str, uint8_t font_l, uint8_t font_h);
 int SH1106_display_temperature(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);
 int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);

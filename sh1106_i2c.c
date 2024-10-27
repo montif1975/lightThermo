@@ -1,10 +1,41 @@
 /* 
-SH1106 OLED DISPLAY DRIVER based on SH1106_i2c.c file
+ * SH1106 OLED DISPLAY DRIVER based on ssd1306_i2c.c file
+ * available on: https://github.com/raspberrypi/pico-examples/tree/master/i2c/ssd1306_i2c
 */
 /**
  * Copyright (c) 2021 Raspberry Pi (Trading) Ltd.
  *
  * SPDX-License-Identifier: BSD-3-Clause
+ * 
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products
+ * derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+ * AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+ * SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
+ *  
  */
 
 #include <stdio.h>
@@ -185,28 +216,7 @@ static uint8_t icons_16p12[] = {
    GND (pin 38)  -> GND on display board
 */
 
-#if 0
-static sh1106_area_descr_t lighThermo_display_area[SH1106_AREA_ID_MAX] = {
-    {
-        .first_page = FIRST_PAGE_STATUS_BAR,
-        .size = NPAGE_STATUS_BAR,
-    },
-    {
-        .first_page = FIRST_PAGE_INFO_AREA,
-        .size = NPAGE_INFO_AREA,
-    },
-    {
-        .first_page = FIRST_PAGE_EXTRA_INFO_AREA,
-        .size = NPAGE_EXTRA_INFO_AREA,
-    }
-};
 
-void calc_render_area_buflen(struct render_area *area)
-{
-    // calculate how long the flattened buffer will be for a render area
-    area->buflen = (area->end_col - area->start_col + 1) * (area->end_page - area->start_page + 1);
-}
-#endif
 
 void SH1106_send_cmd(uint8_t cmd)
 {
@@ -311,7 +321,7 @@ void SH1106_scroll(bool on)
 
 void SH1106_area_render(uint8_t *buf, uint8_t area_id)
 {
-
+    /* TODO */
 }
 
 void SH1106_full_render(uint8_t *buf)
@@ -357,63 +367,8 @@ void SH1106_full_render(uint8_t *buf)
 	}
 }
 
-#if 0
-static void SetPixel(uint8_t *buf, int x,int y, bool on) {
-    assert(x >= 0 && x < SH1106_WIDTH && y >=0 && y < SH1106_HEIGHT);
-
-    // The calculation to determine the correct bit to set depends on which address
-    // mode we are in. This code assumes horizontal
-
-    // The video ram on the SH1106 is split up in to 8 rows, one bit per pixel.
-    // Each row is 128 long by 8 pixels high, each byte vertically arranged, so byte 0 is x=0, y=0->7,
-    // byte 1 is x = 1, y=0->7 etc
-
-    // This code could be optimised, but is like this for clarity. The compiler
-    // should do a half decent job optimising it anyway.
-
-    const int BytesPerRow = SH1106_WIDTH ; // x pixels, 1bpp, but each row is 8 pixel high, so (x / 8) * 8
-
-    int byte_idx = (y / 8) * BytesPerRow + x;
-    uint8_t byte = buf[byte_idx];
-
-    if (on)
-        byte |=  1 << (y % 8);
-    else
-        byte &= ~(1 << (y % 8));
-
-    buf[byte_idx] = byte;
-}
-// Basic Bresenhams.
-static void DrawLine(uint8_t *buf, int x0, int y0, int x1, int y1, bool on) {
-
-    int dx =  abs(x1-x0);
-    int sx = x0<x1 ? 1 : -1;
-    int dy = -abs(y1-y0);
-    int sy = y0<y1 ? 1 : -1;
-    int err = dx+dy;
-    int e2;
-
-    while (true) {
-        SetPixel(buf, x0, y0, on);
-        if (x0 == x1 && y0 == y1)
-            break;
-        e2 = 2*err;
-
-        if (e2 >= dy) {
-            err += dy;
-            x0 += sx;
-        }
-        if (e2 <= dx) {
-            err += dx;
-            y0 += sy;
-        }
-    }
-}
-#endif
-
 static inline void SH1106_clean_area(uint8_t *buf, uint16_t x_start,uint16_t x_end,uint16_t y_high)
 {
-//    uint16_t x_pos;
     int i;
 
     if(x_start/SH1106_WIDTH == x_end/SH1106_WIDTH)
@@ -429,7 +384,6 @@ static inline void SH1106_clean_area(uint8_t *buf, uint16_t x_start,uint16_t x_e
 
     return;
 }
-
 
 static inline int SH1106_get_font_index(uint8_t ch, int font_h)
 {
@@ -534,21 +488,9 @@ static int SH1106_write_char(uint8_t *buf, int16_t x, int16_t y, uint8_t ch, uin
         break;
 
     case FONT_HIGH_16:
+        // 12x16 pixel
         // in this case a character fit in two pages
         // write the first page
-#if 0
-        // 16x16 pixel        
-        for (i=0; i<16; i++) {
-            buf[fb_idx++] = font_16[idx * 32 + i];
-        }
-        // write the second page
-        y++;
-        fb_idx = y * SH1106_WIDTH + x;
-        for (i=0; i<16; i++) {
-            buf[fb_idx++] = font_16[idx * 32 + 16 + i];
-        }
-#else
-        // 12x16 pixel
         for (i=0; i<font_l; i++) {
             buf[fb_idx++] = font_16p12[idx * (font_l*2) + i];
         }
@@ -558,7 +500,6 @@ static int SH1106_write_char(uint8_t *buf, int16_t x, int16_t y, uint8_t ch, uin
         for (i=0; i<font_l; i++) {
             buf[fb_idx++] = font_16p12[idx * (font_l*2) + font_l + i];
         }
-#endif
         break;
 
     case FONT_HIGH_24:
