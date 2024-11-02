@@ -2,8 +2,8 @@
 #include "hardware/i2c.h"
 
 #define I2C_PORT_SENS               i2c1
-#define I2C_SDA_SENS                14
-#define I2C_SCL_SENS                15
+#define I2C_SDA_SENS                18
+#define I2C_SCL_SENS                19
 
 #define DHT20_I2C_ADDRESS           0x38
 #define DHT20_STATUS_OK             0x18
