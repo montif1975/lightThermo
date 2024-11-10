@@ -60,6 +60,7 @@ target_compile_options(lightThermo PRIVATE -Wall)
 target_link_libraries(lightThermo 
         hardware_i2c
         hardware_pio
+        hardware_uart
         )
 
 pico_add_extra_outputs(lightThermo)

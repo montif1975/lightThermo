@@ -14,9 +14,6 @@
 #define DHT20_WAIT_MEAS_MS          80
 #define DTH20_WAIT_MEAS_LOOP        5
 
-#define TEMP_FORMAT_CELSIUS         1
-#define TEMP_FORMAT_FAHRENHEIT      2
-
 int DHT20_init(void);
 int DHT20_read_data(float *temp, float *hum);
 

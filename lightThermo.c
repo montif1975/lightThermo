@@ -39,18 +39,88 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
+#include "hardware/uart.h"
+#include "hardware/irq.h"
+#include "hardware/watchdog.h"
 #include "pico/binary_info.h"
 
+#include "include/general.h"
 #include "include/sh1106_i2c.h"
 #include "include/dht20.h"
 #include "include/lightThermo.h"
 
+
 /*
- * Function: C2F
+ * Global variables
+*/
+char rx_commands[NMAX_CMD_STRING];
+bool cmd_received;
+
+/*
+ * Global functions
+*/
+
+/*
+ * Function: C2F(temperature)
  * Convert Celsius to Fahrenheit scale
 */
 static float C2F(float temperature) {
     return temperature * (9.0f / 5) + 32;
+}
+
+/*
+ * Function: uart_rx_callback() 
+ */
+void uart_rx_callback(void)
+{
+    uint8_t ch;
+    while (uart_is_readable(UART_ID))
+    {
+        ch = uart_getc(UART_ID);
+        printf("Received character: %c\n",ch);
+    }
+
+    return;
+}
+
+/*
+ * Function: lt_send_to_uart()
+ * Send to UART the temperature and humidity in the requested format.
+ */
+void lt_send_to_uart(float temperature, float humidity, uint8_t temp_format, uint8_t out_format)
+{
+    char app_string[24];
+    float temp;
+
+    memset(app_string,0,sizeof(app_string));
+    if(temp_format == TEMP_FORMAT_FAHRENHEIT)
+        temp = C2F(temperature);
+    else
+        temp = temperature;
+
+    switch(out_format)
+    {
+        case SER_OUTPUT_FORMAT_STRING:
+            // add \r\n in order to be sure to print one measure on each line 
+            // in the Windows/Unix terminal (without change its configuration)
+            if(temp_format == TEMP_FORMAT_FAHRENHEIT)
+                sprintf(app_string,"%.02f °F - %.02f %%RH\r\n",temp,humidity);
+            else
+                sprintf(app_string,"%.02f °C - %.02f %%RH\r\n",temp,humidity);
+            break;
+
+        case SER_OUTPUT_FORMAT_CSV:
+            // use ";" as CSV separator
+            sprintf(app_string,"%.02f;%.02f\r\n",temp,humidity);
+            break;
+        
+        default:
+            break;
+    }
+    // send the string to UART
+    uart_puts(UART_ID, app_string);
+
+    return;
 }
 
 /*
@@ -63,12 +133,21 @@ int main(int argc, char *argv[])
     float temperature, humidity;
     uint8_t temp_format = TEMP_FORMAT_CELSIUS;
     char appo_string[10];
-    // only for test
-    char *status_string = "OK";
-    char *id_string = "Sala";
-//    char *connection_string ="No";
+    int baudrate = 0;
+    int uart_irq;
+    int periodic_counter = 0;
 
     stdio_init_all();
+
+    // chech watchdog status
+    if (watchdog_caused_reboot())
+    {
+        printf("Rebooted by Watchdog!\n");
+    }
+    else
+    {
+        printf("Clean boot\n");
+    }
 
     // wait to give time to hardware to be ready
     sleep_ms(2000);
@@ -80,7 +159,7 @@ int main(int argc, char *argv[])
 
     // useful information for picotool
     bi_decl(bi_2pins_with_func(I2C_SDA_OLED, I2C_SCL_OLED, GPIO_FUNC_I2C));
-    bi_decl(bi_program_description("SH1106 OLED driver I2C example for the Raspberry Pi Pico"));
+    bi_decl(bi_program_description("lightThermo - simple temperature and humidity logger and display"));
 
     printf("Hello, SH1106 OLED display! Look at my board..\n");
 
@@ -102,6 +181,46 @@ int main(int argc, char *argv[])
     gpio_pull_up(I2C_SDA_SENS);
     gpio_pull_up(I2C_SCL_SENS);
     // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
+
+    // Set up our UART with a basic baud rate.
+    uart_init(UART_ID, 2400);
+
+    // Set the TX and RX pins by using the function select on the GPIO
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+
+    // Actually, we want a different speed
+    // The call will return the actual baud rate selected, which will be as close as
+    // possible to that requested
+    baudrate = uart_set_baudrate(UART_ID, BAUD_RATE);
+    printf("Set up UART at baudrate %d\n", baudrate);
+
+    // Set UART flow control CTS/RTS, we don't want these, so turn them off
+    uart_set_hw_flow(UART_ID, false, false);
+    // Set our data format
+    uart_set_format(UART_ID, DATA_BITS, STOP_BITS, PARITY);
+    // Turn off FIFO's - we want to do this character by character
+    uart_set_fifo_enabled(UART_ID, false);
+
+    // Set up a RX interrupt
+    // We need to set up the handler first
+    // Select correct interrupt for the UART we are using
+    uart_irq = (UART_ID == uart0) ? UART0_IRQ : UART1_IRQ;
+
+    // And set up and enable the interrupt handlers
+    irq_set_exclusive_handler(uart_irq, uart_rx_callback);
+    irq_set_enabled(uart_irq, true);
+
+    // prepare buffer to receive commands
+    memset(rx_commands,0,sizeof(rx_commands));
+    cmd_received = false;
+
+    // Now enable the UART to send interrupts - RX only
+    uart_set_irq_enables(UART_ID, true, false);
+
+    // initialization UART completed, send a welcome message
+    uart_puts(UART_ID, "\r\nlightThermo ready to work...\r\n");
+    uart_puts(UART_ID, "Read temperature and humidity every minutes\r\n");
 
     // run through the complete initialization process
     // OLED display init
@@ -125,39 +244,46 @@ int main(int argc, char *argv[])
     sleep_ms(10000);
 #endif
 
-    SH1106_setup_display_layout(fb,SH1106_BUF_LEN);
+    SH1106_setup_display_layout(fb,SH1106_BUF_LEN,LT_DISPLAY_MODE_DFLT);
     SH1106_full_render(fb);
 
     SH1106_send_cmd(SH1106_SET_ENTIRE_ON); // go back to following RAM for pixel state
-
-    SH1106_write_string(fb,2,0,status_string,8,8);
-    SH1106_write_string(fb,50,0,id_string,8,8);
- //   SH1106_write_string(fb,98,0,connection_string,8,8);
- //   SH1106_write_icon(fb, 98, 0, SH1106_ICON_WIFI_CONNECTED, FONT_WIDTH_12, FONT_HIGH_16);
-    SH1106_full_render(fb);
 
     // Sensor init
     ret = DHT20_init();
     if(ret == 0)
     {
-        // init OK, go to mainloop
+        // init OK, go to mainloop and start watchdog
+        watchdog_enable(500, 1);
+
         do
         {
-            sleep_ms(1000); // TODO cambiare con gestione timer
-            temperature = 0;
-            humidity = 0;
-            if(DHT20_read_data(&temperature,&humidity) == 0)
+            // wakeup every 100 ms
+            sleep_ms(100);
+            // update watchdog to avoid unexpected restart
+            watchdog_update();
+            periodic_counter++;
+            // NOTE: read_period is expressed in minutes
+            if (periodic_counter == (int)(((float)LT_READ_PERIOD_DFLT*60*1000)/100))
             {
-                memset(appo_string,0,sizeof(appo_string));
-                if(temp_format == TEMP_FORMAT_CELSIUS)
-                    sprintf(appo_string,"%.2f",temperature);
-                else
-                    sprintf(appo_string,"%.2f",C2F(temperature));
-                SH1106_display_temperature(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
-                memset(appo_string,0,sizeof(appo_string));
-                sprintf(appo_string,"%.2f",humidity);
-                SH1106_display_humidity(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
-                SH1106_full_render(fb);
+                temperature = 0;
+                humidity = 0;
+                if(DHT20_read_data(&temperature,&humidity) == 0)
+                {
+                    memset(appo_string,0,sizeof(appo_string));
+                    if(temp_format == TEMP_FORMAT_CELSIUS)
+                        sprintf(appo_string,"%.2f",temperature);
+                    else
+                        sprintf(appo_string,"%.2f",C2F(temperature));
+                    SH1106_display_temperature(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
+                    memset(appo_string,0,sizeof(appo_string));
+                    sprintf(appo_string,"%.2f",humidity);
+                    SH1106_display_humidity(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
+                    SH1106_full_render(fb);
+//                    lt_send_to_uart(temperature,humidity,TEMP_FORMAT_CELSIUS,LT_SEROUT_FORMAT_DFLT);
+                    lt_send_to_uart(temperature,humidity,TEMP_FORMAT_CELSIUS,SER_OUTPUT_FORMAT_CSV);
+                }
+                periodic_counter = 0;
             }
         } while (true);
     }

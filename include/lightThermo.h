@@ -1,4 +1,46 @@
 #define PRG_VERSION             "001"
 #define SENS_TYPE               "DHT20"
 
-//#define DEBUG_FONTS
+// UART PARAMETERS
+#define UART_ID                 uart0
+#define BAUD_RATE               115200
+#define DATA_BITS               8
+#define STOP_BITS               1
+#define PARITY                  UART_PARITY_NONE
+
+// Use default UART pins 0 and 1
+#define UART_TX_PIN             0
+#define UART_RX_PIN             1
+
+#define NMAX_CMD_STRING         32
+
+typedef struct hourly_data {
+    int     value[NVALUE_PER_HOUR];
+    uint8_t rd;
+    uint8_t wr;
+    int     max_value;
+    int     min_value;
+    int     avg_value;
+} hourly_data_t;
+
+typedef struct dayly_data {
+    int value[NVALUE_PER_DAY];
+    uint8_t rd;
+    uint8_t wr;
+    int     max_value;
+    int     min_value;
+    int     avg_value;
+} daily_data_t;
+
+typedef struct LT_data {
+    uint8_t         status;
+    uint8_t         temp_format;
+    uint8_t         serial_output_format;
+    uint8_t         display_layout_format;
+    uint8_t         read_period;
+    hourly_data_t   temp_hours;
+    hourly_data_t   hum_hours;
+    daily_data_t    temp_day;
+    daily_data_t    hum_day;
+} LT_data_t;
+

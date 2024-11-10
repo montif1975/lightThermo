@@ -5,6 +5,8 @@
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
 #include "hardware/i2c.h"
+
+#include "include/general.h"
 #include "include/dht20.h"
 
 /*
@@ -59,40 +61,28 @@ int DHT20_read_data(float *temp, float *hum)
         memset(buf,0x0,sizeof(buf));
         sleep_ms(DHT20_WAIT_MEAS_MS);
         i2c_read_blocking(I2C_PORT_SENS,DHT20_I2C_ADDRESS,buf,6,false);
-#ifdef DEBUG
-        printf("--> loop = %d, from sensor: buf[0] = %02x\n",loop,buf[0]);
-#endif
+        PRINT_I2C_DEBUG("--> loop = %d, from sensor: buf[0] = %02x\n",loop,buf[0]);
         loop--;
     } while (((buf[0] & 0x80) == 0x80) && (loop > 0));
     if(loop == 0)
     {
-#ifdef DEBUG
-        prinf("Unable to read measure within %d milleseconds\n",(DHT20_WAIT_MEAS_MS*DTH20_WAIT_MEAS_LOOP));
-#endif
+        PRINT_I2C_DEBUG("Unable to read measure within %d milleseconds\n",(DHT20_WAIT_MEAS_MS*DTH20_WAIT_MEAS_LOOP));
         ret = -1;
         return ret;
     }
     
     // measure is ready
     i2c_read_blocking(I2C_PORT_SENS,DHT20_I2C_ADDRESS,buf,6,false);
-#ifdef DEBUG
-    printf("--> from sensor: buf[] = %02x,%02x,%02x,%02x,%02x\n",buf[1],buf[2],buf[3],buf[4],buf[5]);
-#endif
+    PRINT_I2C_DEBUG("--> from sensor: buf[] = %02x,%02x,%02x,%02x,%02x\n",buf[1],buf[2],buf[3],buf[4],buf[5]);
     humidity = (buf[1]<<8) | ((buf[2]));
     humidity = ((humidity << 4) | ((buf[3] & 0xF0)>>4));
-#ifdef DEBUG
-    printf("humidity = 0x%X\n",humidity);
-#endif
+    PRINT_I2C_DEBUG("humidity = 0x%X\n",humidity);
     temperature = ((buf[3] & 0x0F)<< 16) | (buf[4]<<8) | buf[5];
-#ifdef DEBUG
-    printf("temperature = 0x%X\n",temperature);
-#endif
+    PRINT_I2C_DEBUG("temperature = 0x%X\n",temperature);
     *hum = ((float)humidity / 1048576)*100;
     *temp = (((float)temperature / 1048576)*200)-50;
-#ifdef DEBUG
-    printf("*** TEMPERATURE = %.2f C\n",temp);
-    printf("*** HUMIDITY = %.2f %%RH\n",hum);
-#endif
+    PRINT_I2C_DEBUG("*** TEMPERATURE = %.2f C\n",*temp);
+    PRINT_I2C_DEBUG("*** HUMIDITY = %.2f %%RH\n",*hum);
 
     return ret;
 }

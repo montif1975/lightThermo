@@ -109,6 +109,6 @@ int SH1106_write_string(uint8_t *buf, int16_t x, int16_t y, char *str, uint8_t f
 int SH1106_display_temperature(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);
 int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);
 int SH1106_write_icon(uint8_t *buf, int16_t x, int16_t y, uint8_t id_icon, uint8_t font_l, uint8_t font_h);
-void SH1106_setup_display_layout(uint8_t *buf, int fb_size);
+void SH1106_setup_display_layout(uint8_t *buf, int fb_size, uint8_t mode);
 void SH1106_show_boot_info(uint8_t *buf,int fb_size,char *prg_vers,char *sens_type);
 

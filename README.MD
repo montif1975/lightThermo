@@ -1,8 +1,11 @@
 # lightThermo
 
 
-Simple Temperature and Humidity sensor with 1.3" OLED display.  
+Simple Temperature and Humidity sensor with 1.3" OLED display.
 Based on Raspberry PICO board (with RP2040 microprocessor).  
+I know, there are a lot of these devices build on Raspberry PICO
+therefore I've added a serial log on UART port (text or CSV format)
+in order to use it as a data logger too.   
 
 ## Hardware configuration
 
@@ -24,12 +27,24 @@ the I2C interface:
 - the DHT20 sensor connections are:
     - *+* to PIN 36 of PICO (3V3)
     - *-* to PIN 38 of PICO (GND)
-    - *SCL* to PIN 20 of PICO (GP15 = SCL)
-    - *SDA* to PIN 19 of PICO (GP14 = SDA)  
+    - *SCL* to PIN 25 of PICO (GP19 = I2C1 SCL)
+    - *SDA* to PIN 24 of PICO (GP18 = I2C1 SDA)  
     
-Obviously, all connections can be changed.
+Obviously, all connections can be changed and only one I2C channel
+can be used.
+
+The UART used to send the measures is the default (it can be changed in
+lightThermo.h file) so it's enough to connect the PIN 1 and 2 to an
+UART-to-USB converter to see the ouput on a terminal console on the PC.
+Be careful to use a 3.3V converter!
+I use AZ-Delivery FT232RL with putty on Window 11 PC and it works.
 
 ## How it show the temperature and humidity
 
-In the figure below an example of the result.
-![lightThermo in action](/resorces/lightThermo_1.png "a simple demo")
+In the image below an example of how the real-time measurement is
+displayed on the OLED:
+![lightThermo in action](/resorces/lt2.png "a simple demo")
+
+Here the output of the UART interface (in this case in CSV format
+*Temperature;Humidity*)
+![lightThermo in action](/resorces/serial_output.jpg "a simple demo")

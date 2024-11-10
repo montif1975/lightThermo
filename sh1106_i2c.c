@@ -45,8 +45,24 @@
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
 #include "hardware/i2c.h"
+#include "include/general.h"
 #include "include/sh1106_i2c.h"
 
+// max 10 characters with 12x16 pixel character format
+static char *DISPLAY_DESCR[] = {
+    "REALTIME",
+    "LAST24H T",
+    "LAST24H H"
+};
+
+#if 0
+// in progress...
+static char *DISPLAY_LAST24H[] = {
+    "MIN",
+    "MAX",
+    "AVG",
+};
+#endif
 
 static uint8_t font8[] = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Nothing
@@ -342,7 +358,7 @@ void SH1106_full_render(uint8_t *buf)
         (SH1106_SETHIGHCOLUMN | 0x0),
         (SH1106_SET_DISP_START_LINE | 0x0)
     };
-    printf("CMD=%02X\nCMD=%02X\nCMD=%02X\n",cmds[0],cmds[1],cmds[2]);
+    PRINT_SH1106_DEBUG("CMD=%02X\nCMD=%02X\nCMD=%02X\n",cmds[0],cmds[1],cmds[2]);
     SH1106_send_cmd_list(cmds, count_of(cmds));
 
 	for (i = 0; i < height; i++)
@@ -351,15 +367,15 @@ void SH1106_full_render(uint8_t *buf)
         // set page address
         cmd = (SH1106_SET_PAGE_ADDR + i + m_row);
         SH1106_send_cmd(cmd);
-        printf("i=%d CMD=%02X\n",i,cmd);
+        PRINT_SH1106_DEBUG("i=%d CMD=%02X\n",i,cmd);
         // set lower column address
         cmd = (SH1106_SETLOWCOLUMN | (m_col & 0xf));
         SH1106_send_cmd(cmd);
-        printf("i=%d CMD=%02X\n",i,cmd);
+        PRINT_SH1106_DEBUG("i=%d CMD=%02X\n",i,cmd);
         // set higher column address
         cmd = (SH1106_SETHIGHCOLUMN | (m_col >> 4));
         SH1106_send_cmd(cmd);
-        printf("i=%d CMD=%02X\n",i,cmd);
+        PRINT_SH1106_DEBUG("i=%d CMD=%02X\n",i,cmd);
 		
         // send one page in one shot
         SH1106_send_buf((uint8_t *)&buf[p], 128);
@@ -405,7 +421,7 @@ static inline int SH1106_get_font_index(uint8_t ch, int font_h)
         if(ch >= ' ' && ch <= '~')
             idx = ch - ' ';
     }
-    printf("ch=%c idx=%d\n",ch,idx);
+    PRINT_SH1106_DEBUG("ch=%c idx=%d\n",ch,idx);
 
     return idx;
 }
@@ -513,22 +529,22 @@ static int SH1106_write_char(uint8_t *buf, int16_t x, int16_t y, uint8_t ch, uin
 }
 
 
-int SH1106_write_string(uint8_t *buf, int16_t x, int16_t y, char *str, uint8_t font_l, uint8_t font_h)
+int SH1106_write_string(uint8_t *buf, int16_t x, int16_t y, char *str, uint8_t font_w, uint8_t font_h)
 {
     int ret = -1;
 
     // reject any string off the screen
-    if( (x > (SH1106_WIDTH - font_l)) || (y > (SH1106_HEIGHT - font_h)))
+    if( (x > (SH1106_WIDTH - font_w)) || (y > (SH1106_HEIGHT - font_h)))
         return ret;
     else 
         ret = 0;
 
     while(*str)
     {
-        ret = SH1106_write_char(buf, x, y, *str, font_l, font_h); 
+        ret = SH1106_write_char(buf, x, y, *str, font_w, font_h); 
         if(ret == 0)
         {
-            x += font_l;
+            x += font_w;
             str++;
         }
         else
@@ -553,15 +569,15 @@ int SH1106_display_temperature(uint8_t *buf,char *str, uint8_t font_l, uint8_t f
         ret = -1;
         return ret;
     }
-    printf("nchar=%d\n",nchar);
+    PRINT_SH1106_DEBUG("nchar=%d\n",nchar);
 
     // calculate the position of first characters aligning to the right
     // and leave the space to the right for the icons (°C or °F).
     x_start_pos = (nchar - (strlen(str) + 1))*font_l;
-    printf("x_start_pos=%d\n",x_start_pos);
+    PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
     // calculate the position in the buffer
     x_start_buf = (FIRST_PAGE_INFO_AREA * SH1106_WIDTH) + x_start_pos;
-    printf("x_start_buf=%d\n",x_start_buf);
+    PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
 
     // clean the line before start point to delete previous value
     // skip first character where is displayed an icon
@@ -586,15 +602,15 @@ int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font
         ret = -1;
         return ret;
     }
-    printf("nchar=%d\n",nchar);
+    PRINT_SH1106_DEBUG("nchar=%d\n",nchar);
 
     // calculate the position of first characters aligning to the right
     // and leave the space to the right for the icons (°C or °F).
     x_start_pos = (nchar - (strlen(str) + 1))*font_l;
-    printf("x_start_pos=%d\n",x_start_pos);
+    PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
     // calculate the position in the buffer
     x_start_buf = ((FIRST_PAGE_INFO_AREA + 2) * SH1106_WIDTH) + x_start_pos;
-    printf("x_start_buf=%d\n",x_start_buf);
+    PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
 
     // clean the line before start point to delete previous value
     // skip first character where is displayed an icon
@@ -604,34 +620,50 @@ int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font
     return ret;
 }
 
-void SH1106_setup_display_layout(uint8_t *buf, int fb_size)
+void SH1106_setup_display_layout(uint8_t *buf, int fb_size, uint8_t mode)
 {
     int i;
 
-    // build the entire display layout (status bar + info area + extra info area)
-    // __________________
-    // |_____|_____|____|   2 pages - Status Bar (status + ID + Connection state)
-    // |                |   4 pages - Info Area
-    // |________________|
-    // |________________|   2 pages - extra info area
-    //  
+    // cleanup the buffer
     memset(buf, 0, fb_size);
-    // build vertical line between status and ID field
-    buf[48] = 0xFF; 
-    buf[96] = 0xFF;  
-    // build orizontal line between Status bar and Info area
-    for (i=128; i<256; i++)
-        buf[i] = 0x80;
-    buf[176] = 0xFF;
-    buf[224] = 0xFF;
-    // build orizontal line between Info area and extra info bar
-    for (i=768; i<896; i++)
-        buf[i] = 0x01;
-    // add icons to the Info Area
-    SH1106_write_icon(buf, 0, 16, SH1106_ICON_TERMOMETER, FONT_WIDTH_12, FONT_HIGH_16);
-    SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 16, SH1106_ICON_CELSIUS, FONT_WIDTH_12, FONT_HIGH_16);
-    SH1106_write_icon(buf, 0, 32, SH1106_ICON_DROP, FONT_WIDTH_12, FONT_HIGH_16);
-    SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 32, SH1106_ICON_PERCENT, FONT_WIDTH_12, FONT_HIGH_16);
+
+    // build the entire display layout according to the mode requested
+    switch(mode)
+    {
+        case DISPLAY_MODE_RT_MES:
+            // __________________
+            // |________________|   2 pages - Description
+            // |                |   4 pages - Info Area
+            // |________________|
+            // |________________|   2 pages - extra info area (future use)
+            //  
+            // build orizontal line between Description Area and Info area
+            for (i=128; i<256; i++)
+                buf[i] = 0x80;
+            buf[176] = 0xFF;
+            buf[224] = 0xFF;
+            // build orizontal line between Info area and extra info bar
+            for (i=768; i<896; i++)
+                buf[i] = 0x01;
+            // add description for this mode
+            SH1106_write_string(buf, 16, 0, DISPLAY_DESCR[mode],FONT_WIDTH_12,FONT_HIGH_16);
+            // add icons to the Info Area
+            SH1106_write_icon(buf, 0, 16, SH1106_ICON_TERMOMETER, FONT_WIDTH_12, FONT_HIGH_16);
+            SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 16, SH1106_ICON_CELSIUS, FONT_WIDTH_12, FONT_HIGH_16);
+            SH1106_write_icon(buf, 0, 32, SH1106_ICON_DROP, FONT_WIDTH_12, FONT_HIGH_16);
+            SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 32, SH1106_ICON_PERCENT, FONT_WIDTH_12, FONT_HIGH_16);
+            break;
+
+        case DISPLAY_MODE_SHOW_LAST_24H_T:
+            break;
+        
+        case DISPLAY_MODE_SHOW_LAST_24H_H:
+            break;
+        
+        default:
+            printf("Unknown display mode (%d)\n", mode);
+            break;
+    }
 
     return;
 }
@@ -648,5 +680,6 @@ void SH1106_show_boot_info(uint8_t *buf,int fb_size,char *prg_vers,char *sens_ty
     sprintf(boot_string,"Sens %s",sens_type);
     SH1106_write_string(buf,8,40,boot_string,FONT_HIGH_8,FONT_HIGH_8);
 
+    return;
 }
 
