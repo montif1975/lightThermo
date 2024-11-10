@@ -36,10 +36,13 @@ can be used.
 The UART used to send the measures is the default (it can be changed in
 lightThermo.h file) so it's enough to connect the PIN 1 and 2 to an
 UART-to-USB converter to see the ouput on a terminal console on the PC.
+
 Be careful to use a 3.3V converter!
+
+
 I use AZ-Delivery FT232RL with putty on Window 11 PC and it works.
 
-## How it show the temperature and humidity
+## How it shows the temperature and humidity
 
 In the image below an example of how the real-time measurement is
 displayed on the OLED:
