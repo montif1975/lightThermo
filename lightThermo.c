@@ -39,6 +39,7 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
+#include "hardware/gpio.h"
 #include "hardware/uart.h"
 #include "hardware/irq.h"
 #include "hardware/watchdog.h"
@@ -55,6 +56,7 @@
 */
 char rx_commands[NMAX_CMD_STRING];
 bool cmd_received;
+bool button_pushed;
 
 /*
  * Global functions
@@ -123,6 +125,36 @@ void lt_send_to_uart(float temperature, float humidity, uint8_t temp_format, uin
     return;
 }
 
+/**
+ * Function: lt_init_dflt()
+ */
+void lt_init_dflt(LT_data_t *data)
+{
+    memset(data,0,sizeof(LT_data_t));
+    data->status = LT_STATUS_BOOT;
+    data->temp_format = LT_TEMP_FORMAT_DFLT;
+    data->serial_output_format = LT_SEROUT_FORMAT_DFLT;
+    data->display_layout_format = LT_DISPLAY_MODE_DFLT;
+    data->read_period = LT_READ_PERIOD_DFLT;
+/*    
+    hourly_data_t   temp_hours;
+    hourly_data_t   hum_hours;
+    daily_data_t    temp_day;
+    daily_data_t    hum_day;
+*/
+    return;
+}
+
+/**
+ * Function: my_gpio_callback()
+ */
+void my_gpio_callback(uint gpio_num,uint32_t events)
+{
+    if(gpio_num == GPIO_INPUT_BUTTON)
+        button_pushed = true;
+    return;
+}
+
 /*
  * main()
 */
@@ -131,13 +163,16 @@ int main(int argc, char *argv[])
     int ret = 0;
     uint8_t fb[SH1106_BUF_LEN];
     float temperature, humidity;
-    uint8_t temp_format = TEMP_FORMAT_CELSIUS;
     char appo_string[10];
     int baudrate = 0;
     int uart_irq;
     int periodic_counter = 0;
+    LT_data_t LT_data;
 
     stdio_init_all();
+
+    // init working data
+    lt_init_dflt(&LT_data);
 
     // chech watchdog status
     if (watchdog_caused_reboot())
@@ -181,6 +216,14 @@ int main(int argc, char *argv[])
     gpio_pull_up(I2C_SDA_SENS);
     gpio_pull_up(I2C_SCL_SENS);
     // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
+
+    // Set up input button for change display mode
+    button_pushed = false;
+    gpio_init(GPIO_INPUT_BUTTON);
+    gpio_set_dir(GPIO_INPUT_BUTTON,false);
+    gpio_pull_up(GPIO_INPUT_BUTTON);
+//    gpio_set_irq_enabled_with_callback(GPIO_INPUT_BUTTON, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &my_gpio_callback);
+    gpio_set_irq_enabled_with_callback(GPIO_INPUT_BUTTON, GPIO_IRQ_EDGE_FALL, true, &my_gpio_callback);
 
     // Set up our UART with a basic baud rate.
     uart_init(UART_ID, 2400);
@@ -232,9 +275,9 @@ int main(int argc, char *argv[])
     sleep_ms(2000);
 
 #ifdef DEBUG_FONTS
-    char *test_string_1 = "ABCDEFGHIJ";
-    char *test_string_2 = "KLMNOPQRST";
-    char *test_string_3 = "UVWXYZ";
+    char *test_string_1 = "Realtime";
+    char *test_string_2 = "Last 24H T";
+    char *test_string_3 = "Last 24H H";
 
     memset(fb,0,sizeof(fb));
     SH1106_write_string(fb, 0, 0, test_string_1,FONT_WIDTH_12,FONT_HIGH_16);
@@ -246,8 +289,8 @@ int main(int argc, char *argv[])
 
     SH1106_setup_display_layout(fb,SH1106_BUF_LEN,LT_DISPLAY_MODE_DFLT);
     SH1106_full_render(fb);
-
     SH1106_send_cmd(SH1106_SET_ENTIRE_ON); // go back to following RAM for pixel state
+    LT_data.display_layout_format = LT_DISPLAY_MODE_DFLT;
 
     // Sensor init
     ret = DHT20_init();
@@ -256,32 +299,66 @@ int main(int argc, char *argv[])
         // init OK, go to mainloop and start watchdog
         watchdog_enable(500, 1);
 
+        LT_data.status = LT_STATUS_RT_MES;
+
         do
         {
             // wakeup every 100 ms
             sleep_ms(100);
             // update watchdog to avoid unexpected restart
             watchdog_update();
+
+            // check input button
+            if(button_pushed == true)
+            {
+                printf("GPIO Callback: counter=%d - GPIO=%d\n",periodic_counter,GPIO_INPUT_BUTTON);
+                if(LT_data.display_layout_format == DISPLAY_MODE_RT_MES)
+                {
+                    SH1106_setup_display_layout(fb,SH1106_BUF_LEN,DISPLAY_MODE_SHOW_LAST_24H_T);
+                    LT_data.display_layout_format = DISPLAY_MODE_SHOW_LAST_24H_T;
+                }
+                else if (LT_data.display_layout_format == DISPLAY_MODE_SHOW_LAST_24H_T)
+                {
+                    SH1106_setup_display_layout(fb,SH1106_BUF_LEN,DISPLAY_MODE_SHOW_LAST_24H_H);
+                    LT_data.display_layout_format = DISPLAY_MODE_SHOW_LAST_24H_H;
+                }
+                else
+                {
+                    SH1106_setup_display_layout(fb,SH1106_BUF_LEN,DISPLAY_MODE_RT_MES);
+                    SH1106_display_temperature(fb,LT_data.last_temp_read,FONT_WIDTH_12,FONT_HIGH_16);
+                    SH1106_display_humidity(fb,LT_data.last_hum_read,FONT_WIDTH_12,FONT_HIGH_16);
+                    LT_data.display_layout_format = DISPLAY_MODE_RT_MES;
+                }
+                SH1106_full_render(fb);
+
+                button_pushed = false;
+            }
+
             periodic_counter++;
             // NOTE: read_period is expressed in minutes
-            if (periodic_counter == (int)(((float)LT_READ_PERIOD_DFLT*60*1000)/100))
+            if (periodic_counter == (int)(((float)LT_data.read_period*60*1000)/100))
             {
                 temperature = 0;
                 humidity = 0;
                 if(DHT20_read_data(&temperature,&humidity) == 0)
                 {
                     memset(appo_string,0,sizeof(appo_string));
-                    if(temp_format == TEMP_FORMAT_CELSIUS)
+                    if(LT_data.temp_format == TEMP_FORMAT_CELSIUS)
                         sprintf(appo_string,"%.2f",temperature);
                     else
                         sprintf(appo_string,"%.2f",C2F(temperature));
-                    SH1106_display_temperature(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
+                    strcpy(LT_data.last_temp_read,appo_string);
+                    if(LT_data.display_layout_format == DISPLAY_MODE_RT_MES)
+                        SH1106_display_temperature(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
                     memset(appo_string,0,sizeof(appo_string));
                     sprintf(appo_string,"%.2f",humidity);
-                    SH1106_display_humidity(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
-                    SH1106_full_render(fb);
-//                    lt_send_to_uart(temperature,humidity,TEMP_FORMAT_CELSIUS,LT_SEROUT_FORMAT_DFLT);
-                    lt_send_to_uart(temperature,humidity,TEMP_FORMAT_CELSIUS,SER_OUTPUT_FORMAT_CSV);
+                    strcpy(LT_data.last_hum_read,appo_string);
+                    if(LT_data.display_layout_format == DISPLAY_MODE_RT_MES)
+                    {
+                        SH1106_display_humidity(fb,appo_string,FONT_WIDTH_12,FONT_HIGH_16);
+                        SH1106_full_render(fb);
+                    }
+                    lt_send_to_uart(temperature,humidity,LT_data.temp_format,LT_data.serial_output_format);
                 }
                 periodic_counter = 0;
             }

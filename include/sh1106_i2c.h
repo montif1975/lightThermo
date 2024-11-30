@@ -61,6 +61,7 @@
 #define FONT_WIDTH_16               16
 #define FONT_WIDTH_24               24
 
+// TODO: to be change with new layout
 // Definition of display areas
 // build the entire display layout (status bar + info area + extra info area)
 // __________________
@@ -69,12 +70,27 @@
 // |________________|
 // |________________|   2 pages - extra info area
 //  
-#define FIRST_PAGE_STATUS_BAR       0
+#define FIRST_PAGE_STATUS_BAR       1
 #define NPAGE_STATUS_BAR            2
 #define FIRST_PAGE_INFO_AREA        (FIRST_PAGE_STATUS_BAR + NPAGE_STATUS_BAR)
 #define NPAGE_INFO_AREA             4
 #define FIRST_PAGE_EXTRA_INFO_AREA  (FIRST_PAGE_INFO_AREA + NPAGE_INFO_AREA)
-#define NPAGE_EXTRA_INFO_AREA       2
+#define NPAGE_EXTRA_INFO_AREA       1
+
+#define DSPLY_MODE_RT_MES_DESCR_Y   8
+#define DSPLY_MODE_RT_MES_ICONT_Y   (DSPLY_MODE_RT_MES_DESCR_Y + FONT_HIGH_16)
+#define DSPLY_MODE_RT_MES_ICONH_Y   (DSPLY_MODE_RT_MES_ICONT_Y + FONT_HIGH_16)
+
+#define DSPLY_MODE_LAST24H_T_DES_Y  0
+#define DSPLY_MODE_LAST24H_T_MIN_Y  (DSPLY_MODE_LAST24H_T_DES_Y + FONT_HIGH_16)
+#define DSPLY_MODE_LAST24H_T_MAX_Y  (DSPLY_MODE_LAST24H_T_MIN_Y + FONT_HIGH_16)
+#define DSPLY_MODE_LAST24H_T_AVG_Y  (DSPLY_MODE_LAST24H_T_MAX_Y + FONT_HIGH_16)
+
+#define DSPLY_MODE_LAST24H_H_DES_Y  0
+#define DSPLY_MODE_LAST24H_H_MIN_Y  (DSPLY_MODE_LAST24H_H_DES_Y + FONT_HIGH_16)
+#define DSPLY_MODE_LAST24H_H_MAX_Y  (DSPLY_MODE_LAST24H_H_MIN_Y + FONT_HIGH_16)
+#define DSPLY_MODE_LAST24H_H_AVG_Y  (DSPLY_MODE_LAST24H_H_MAX_Y + FONT_HIGH_16)
+
 
 enum sh1106_area_id {
     SH1106_AREA_STATUS_BAR_ID,
