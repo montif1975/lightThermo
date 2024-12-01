@@ -126,6 +126,32 @@ void lt_send_to_uart(float temperature, float humidity, uint8_t temp_format, uin
 }
 
 /**
+ * Funtion: lt_init_hourly_statistic()
+ */
+void lt_init_hourly_statistic(hourly_data_t *d)
+{
+    d->max_value = 0;
+    d->min_value = 9999;
+    d->avg_value = 0;
+    d->rd = 0;
+    d->wr = 0;
+    return;
+}
+
+/**
+ * Function: lt_init_daily_statistic()
+ */
+void lt_init_daily_statistic(daily_data_t *d)
+{
+    d->max_value = 0;
+    d->min_value = 9999;
+    d->avg_value = 0;
+    d->full = false;
+    d->wr = 0;
+    return;
+}
+
+/**
  * Function: lt_init_dflt()
  */
 void lt_init_dflt(LT_data_t *data)
@@ -136,12 +162,15 @@ void lt_init_dflt(LT_data_t *data)
     data->serial_output_format = LT_SEROUT_FORMAT_DFLT;
     data->display_layout_format = LT_DISPLAY_MODE_DFLT;
     data->read_period = LT_READ_PERIOD_DFLT;
-/*    
-    hourly_data_t   temp_hours;
-    hourly_data_t   hum_hours;
-    daily_data_t    temp_day;
-    daily_data_t    hum_day;
-*/
+    data->last_tick = 0;
+    data->nloop = 0;
+
+    lt_init_hourly_statistic(&(data->temp_hours));
+    lt_init_hourly_statistic(&(data->hum_hours));
+
+    lt_init_daily_statistic(&(data->temp_day));
+    lt_init_daily_statistic(&(data->hum_day));
+
     return;
 }
 
@@ -152,6 +181,99 @@ void my_gpio_callback(uint gpio_num,uint32_t events)
 {
     if(gpio_num == GPIO_INPUT_BUTTON)
         button_pushed = true;
+    return;
+}
+
+/**
+ * Function: lt_update_statistics()
+ */
+void lt_update_statistics(LT_data_t *data, float temp,float hum)
+{
+    int i;
+    int sum_avg = 0;
+    int temp_cents = (int)(temp * 100);
+    int hum_cents = (int)(hum * 100);
+
+    // update data for hour statistics
+    if(temp_cents > data->temp_hours.max_value)
+        data->temp_hours.max_value = temp_cents;
+    if(temp_cents < data->temp_hours.min_value)
+        data->temp_hours.min_value = temp_cents;
+    printf("Hour - save temperature %d to position %d\n",temp_cents,data->temp_hours.wr);
+    data->temp_hours.value[data->temp_hours.wr] = temp_cents;
+    for(i=0; i<=data->temp_hours.wr; i++)
+        sum_avg += data->temp_hours.value[i];
+    data->temp_hours.avg_value = (sum_avg / i);
+    data->temp_hours.wr = ((data->temp_hours.wr + 1) % NVALUE_PER_HOUR);
+
+    sum_avg = 0;
+    if(hum_cents > data->hum_hours.max_value)
+        data->hum_hours.max_value = hum_cents;
+    if(hum_cents < data->hum_hours.min_value)
+        data->hum_hours.min_value = hum_cents;
+    printf("Hour - save humidity %d to position %d\n",hum_cents,data->hum_hours.wr);
+    data->hum_hours.value[data->hum_hours.wr] = hum_cents;
+    for(i=0; i<=data->hum_hours.wr; i++)
+        sum_avg += data->hum_hours.value[i];
+    data->hum_hours.avg_value = (sum_avg / i);
+    data->hum_hours.wr = ((data->hum_hours.wr + 1) % NVALUE_PER_HOUR);
+
+    // update data for daily statistics
+    if((data->nloop % NLOOP_PER_HOUR) == 0)
+    {
+        sum_avg = 0;
+        if(data->temp_hours.max_value > data->temp_day.max_value)
+            data->temp_day.max_value = data->temp_hours.max_value;
+        if(data->temp_hours.min_value < data->temp_day.min_value)
+            data->temp_day.min_value = data->temp_hours.min_value;
+        printf("Day - save temperature %d to position %d\n",data->temp_hours.avg_value,data->temp_day.wr);
+        data->temp_day.value[data->temp_day.wr] = data->temp_hours.avg_value;
+        if(data->temp_day.full == false)
+        {
+            for(i=0; i<=data->temp_day.wr; i++)
+                sum_avg += data->temp_day.value[i];
+            data->temp_day.avg_value = (sum_avg / i);
+        }
+        else
+        {
+            for(i=0; i<NVALUE_PER_DAY; i++)
+                sum_avg += data->temp_day.value[i];
+            data->temp_day.avg_value = (sum_avg / NVALUE_PER_DAY);            
+        }
+        if((data->temp_day.full == false) && (data->temp_day.wr == (NVALUE_PER_DAY - 1)))
+        {
+            data->temp_day.full = true;
+        }
+        data->temp_day.wr = ((data->temp_day.wr + 1) % NVALUE_PER_DAY);
+        lt_init_hourly_statistic(&(data->temp_hours));
+
+        sum_avg = 0;
+        if(data->hum_hours.max_value > data->hum_day.max_value)
+            data->hum_day.max_value = data->hum_hours.max_value;
+        if(data->hum_hours.min_value < data->hum_day.min_value)
+            data->hum_day.min_value = data->hum_hours.min_value;
+        printf("Day - save humidity %d to position %d\n",data->hum_hours.avg_value,data->hum_day.wr);
+        data->hum_day.value[data->hum_day.wr] = data->hum_hours.avg_value;
+        if(data->hum_day.full == false)
+        {
+            for(i=0; i<=data->hum_day.wr; i++)
+                sum_avg += data->hum_day.value[i];
+            data->hum_day.avg_value = (sum_avg / i);
+        }
+        else
+        {
+            for(i=0; i<NVALUE_PER_DAY; i++)
+                sum_avg += data->hum_day.value[i];
+            data->hum_day.avg_value = (sum_avg / NVALUE_PER_DAY);
+        }
+        if((data->hum_day.full == false) && (data->hum_day.wr == (NVALUE_PER_DAY - 1)))
+        {
+            data->hum_day.full = true;
+        }
+        data->hum_day.wr = ((data->hum_day.wr + 1) % NVALUE_PER_DAY);
+        lt_init_hourly_statistic(&(data->hum_hours));
+    }
+
     return;
 }
 
@@ -166,7 +288,7 @@ int main(int argc, char *argv[])
     char appo_string[10];
     int baudrate = 0;
     int uart_irq;
-    int periodic_counter = 0;
+    int tick = 0;
     LT_data_t LT_data;
 
     stdio_init_all();
@@ -222,7 +344,6 @@ int main(int argc, char *argv[])
     gpio_init(GPIO_INPUT_BUTTON);
     gpio_set_dir(GPIO_INPUT_BUTTON,false);
     gpio_pull_up(GPIO_INPUT_BUTTON);
-//    gpio_set_irq_enabled_with_callback(GPIO_INPUT_BUTTON, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &my_gpio_callback);
     gpio_set_irq_enabled_with_callback(GPIO_INPUT_BUTTON, GPIO_IRQ_EDGE_FALL, true, &my_gpio_callback);
 
     // Set up our UART with a basic baud rate.
@@ -275,9 +396,9 @@ int main(int argc, char *argv[])
     sleep_ms(2000);
 
 #ifdef DEBUG_FONTS
-    char *test_string_1 = "Realtime";
-    char *test_string_2 = "Last 24H T";
-    char *test_string_3 = "Last 24H H";
+    char *test_string_1 = "abcdefghkji";
+    char *test_string_2 = "lmnopqrstuv";
+    char *test_string_3 = "wxyz";
 
     memset(fb,0,sizeof(fb));
     SH1106_write_string(fb, 0, 0, test_string_1,FONT_WIDTH_12,FONT_HIGH_16);
@@ -304,42 +425,57 @@ int main(int argc, char *argv[])
         do
         {
             // wakeup every 100 ms
-            sleep_ms(100);
+            sleep_ms(MAINLOOP_TICK);
             // update watchdog to avoid unexpected restart
             watchdog_update();
 
             // check input button
             if(button_pushed == true)
             {
-                printf("GPIO Callback: counter=%d - GPIO=%d\n",periodic_counter,GPIO_INPUT_BUTTON);
-                if(LT_data.display_layout_format == DISPLAY_MODE_RT_MES)
+                // anti-debouncing (if poor quality button is used)
+                if((LT_data.last_tick == 0) || (tick > (LT_data.last_tick + 2)))
                 {
-                    SH1106_setup_display_layout(fb,SH1106_BUF_LEN,DISPLAY_MODE_SHOW_LAST_24H_T);
-                    LT_data.display_layout_format = DISPLAY_MODE_SHOW_LAST_24H_T;
-                }
-                else if (LT_data.display_layout_format == DISPLAY_MODE_SHOW_LAST_24H_T)
-                {
-                    SH1106_setup_display_layout(fb,SH1106_BUF_LEN,DISPLAY_MODE_SHOW_LAST_24H_H);
-                    LT_data.display_layout_format = DISPLAY_MODE_SHOW_LAST_24H_H;
+                    LT_data.last_tick = tick;
+                    printf("GPIO Callback: tick=%d - GPIO=%d\n",tick,GPIO_INPUT_BUTTON);
+                    if(LT_data.display_layout_format == DISPLAY_MODE_RT_MES)
+                    {
+                        SH1106_setup_display_layout(fb,SH1106_BUF_LEN,DISPLAY_MODE_SHOW_LAST_24H_T);
+                        if(LT_data.temp_day.full == false)
+                            SH1106_display_t_stats(fb,LT_data.temp_hours.max_value,LT_data.temp_hours.min_value,LT_data.temp_hours.avg_value,FONT_WIDTH_12,FONT_HIGH_16);
+                        else
+                            SH1106_display_t_stats(fb,LT_data.temp_day.max_value,LT_data.temp_day.min_value,LT_data.temp_day.avg_value,FONT_WIDTH_12,FONT_HIGH_16);
+                        LT_data.display_layout_format = DISPLAY_MODE_SHOW_LAST_24H_T;
+                    }
+                    else if (LT_data.display_layout_format == DISPLAY_MODE_SHOW_LAST_24H_T)
+                    {
+                        SH1106_setup_display_layout(fb,SH1106_BUF_LEN,DISPLAY_MODE_SHOW_LAST_24H_H);
+                        if(LT_data.hum_day.full == false)
+                            SH1106_display_h_stats(fb,LT_data.hum_hours.max_value,LT_data.hum_hours.min_value,LT_data.hum_hours.avg_value,FONT_WIDTH_12,FONT_HIGH_16);
+                        else
+                            SH1106_display_h_stats(fb,LT_data.hum_day.max_value,LT_data.hum_day.min_value,LT_data.hum_day.avg_value,FONT_WIDTH_12,FONT_HIGH_16);
+                        LT_data.display_layout_format = DISPLAY_MODE_SHOW_LAST_24H_H;
+                    }
+                    else
+                    {
+                        SH1106_setup_display_layout(fb,SH1106_BUF_LEN,DISPLAY_MODE_RT_MES);
+                        SH1106_display_temperature(fb,LT_data.last_temp_read,FONT_WIDTH_12,FONT_HIGH_16);
+                        SH1106_display_humidity(fb,LT_data.last_hum_read,FONT_WIDTH_12,FONT_HIGH_16);
+                        LT_data.display_layout_format = DISPLAY_MODE_RT_MES;
+                    }
+                    SH1106_full_render(fb);
                 }
                 else
-                {
-                    SH1106_setup_display_layout(fb,SH1106_BUF_LEN,DISPLAY_MODE_RT_MES);
-                    SH1106_display_temperature(fb,LT_data.last_temp_read,FONT_WIDTH_12,FONT_HIGH_16);
-                    SH1106_display_humidity(fb,LT_data.last_hum_read,FONT_WIDTH_12,FONT_HIGH_16);
-                    LT_data.display_layout_format = DISPLAY_MODE_RT_MES;
-                }
-                SH1106_full_render(fb);
-
+                    printf("Ignore GPIO callback too close to the previous one (anti-debouncing) - tick=%d last_tick=%d\n",tick,LT_data.last_tick);
                 button_pushed = false;
             }
 
-            periodic_counter++;
+            tick++;
             // NOTE: read_period is expressed in minutes
-            if (periodic_counter == (int)(((float)LT_data.read_period*60*1000)/100))
+            if (tick == (int)(((float)LT_data.read_period*60*1000)/MAINLOOP_TICK))
             {
                 temperature = 0;
                 humidity = 0;
+                LT_data.nloop++;
                 if(DHT20_read_data(&temperature,&humidity) == 0)
                 {
                     memset(appo_string,0,sizeof(appo_string));
@@ -360,7 +496,26 @@ int main(int argc, char *argv[])
                     }
                     lt_send_to_uart(temperature,humidity,LT_data.temp_format,LT_data.serial_output_format);
                 }
-                periodic_counter = 0;
+                // update statistics data
+                lt_update_statistics(&LT_data,temperature,humidity);
+                if(LT_data.display_layout_format == DISPLAY_MODE_SHOW_LAST_24H_T)
+                {
+                    if(LT_data.temp_day.full == false)
+                        SH1106_display_t_stats(fb,LT_data.temp_hours.max_value,LT_data.temp_hours.min_value,LT_data.temp_hours.avg_value,FONT_WIDTH_12,FONT_HIGH_16);
+                    else
+                        SH1106_display_t_stats(fb,LT_data.temp_day.max_value,LT_data.temp_day.min_value,LT_data.temp_day.avg_value,FONT_WIDTH_12,FONT_HIGH_16);
+                }
+                if(LT_data.display_layout_format == DISPLAY_MODE_SHOW_LAST_24H_H)
+                {
+                    if(LT_data.hum_day.full == false)
+                        SH1106_display_h_stats(fb,LT_data.hum_hours.max_value,LT_data.hum_hours.min_value,LT_data.hum_hours.avg_value,FONT_WIDTH_12,FONT_HIGH_16);
+                    else
+                        SH1106_display_h_stats(fb,LT_data.hum_day.max_value,LT_data.hum_day.min_value,LT_data.hum_day.avg_value,FONT_WIDTH_12,FONT_HIGH_16);
+                }
+                SH1106_full_render(fb);
+
+                tick = 0;
+                LT_data.last_tick = 0;
             }
         } while (true);
     }

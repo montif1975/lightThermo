@@ -620,6 +620,85 @@ int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font
     return ret;
 }
 
+void SH1106_display_t_stats(uint8_t *buf,int max,int min,int avg,uint8_t font_l, uint8_t font_h)
+{
+    uint8_t nchar = 0;
+    int16_t x_start_pos = 0;
+    int16_t x_start_buf = 0;
+    char str_max[10];
+    char str_min[10];
+    char str_avg[10];
+
+    memset(str_max,0,sizeof(str_max));
+    memset(str_min,0,sizeof(str_min));
+    memset(str_avg,0,sizeof(str_avg));
+
+    sprintf(str_max,"%.02f",(float)((float)max / 100));
+    sprintf(str_min,"%.02f",(float)((float)min / 100));
+    sprintf(str_avg,"%.02f",(float)((float)avg / 100));
+
+    printf("Display: MAX=%s MIN=%s AVG=%s\n",str_max,str_min,str_avg);
+
+    // calculate the number of characters/icons that fit into single line
+    nchar = SH1106_WIDTH / font_l;
+    if((nchar < (strlen(str_max) + 1)) ||
+       (nchar < (strlen(str_min) + 1)) ||
+       (nchar < (strlen(str_avg) + 1)))
+    {
+        // one of the strings doesn't fit in a single line
+        printf("%s - Error in str len\n",__FUNCTION__);
+        return;
+    }
+    PRINT_SH1106_DEBUG("nchar=%d\n",nchar);
+
+    // MIN
+    // calculate the position of first characters aligning to the right
+    // and leave the space to the right for the icons (°C or °F).
+    x_start_pos = (nchar - (strlen(str_min) + 1))*font_l;
+    PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
+    // calculate the position in the buffer
+    x_start_buf = (FIRST_PAGE_INFO_AREA * SH1106_WIDTH) + x_start_pos;
+    PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
+    // clean the line before start point to delete previous value
+    // skip first character where is displayed an icon
+    SH1106_clean_area(buf,((LAST24H_T_FIRST_PAGE * SH1106_WIDTH) + font_l),x_start_buf,font_h);
+    SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*(LAST24H_T_FIRST_PAGE),str_min,font_l,font_h); 
+
+    // MAX
+    // calculate the position of first characters aligning to the right
+    // and leave the space to the right for the icons (°C or °F).
+    x_start_pos = (nchar - (strlen(str_max) + 1))*font_l;
+    PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
+    // calculate the position in the buffer
+    x_start_buf = ((FIRST_PAGE_INFO_AREA + 2)* SH1106_WIDTH) + x_start_pos;
+    PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
+    // clean the line before start point to delete previous value
+    // skip first character where is displayed an icon
+    SH1106_clean_area(buf,(((LAST24H_T_FIRST_PAGE + 2) * SH1106_WIDTH) + font_l),x_start_buf,font_h);
+    SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*(LAST24H_T_FIRST_PAGE + 2),str_max,font_l,font_h); 
+
+    // AVG
+    // calculate the position of first characters aligning to the right
+    // and leave the space to the right for the icons (°C or °F).
+    x_start_pos = (nchar - (strlen(str_avg) + 1))*font_l;
+    PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
+    // calculate the position in the buffer
+    x_start_buf = ((FIRST_PAGE_INFO_AREA + 4)* SH1106_WIDTH) + x_start_pos;
+    PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
+    // clean the line before start point to delete previous value
+    // skip first character where is displayed an icon
+    SH1106_clean_area(buf,(((LAST24H_T_FIRST_PAGE + 4) * SH1106_WIDTH) + font_l),x_start_buf,font_h);
+    SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*(LAST24H_T_FIRST_PAGE + 4),str_avg,font_l,font_h); 
+
+    return;
+}
+
+void SH1106_display_h_stats(uint8_t *buf,int max,int min,int avg,uint8_t font_l, uint8_t font_h)
+{
+    SH1106_display_t_stats(buf,max,min,avg,font_l,font_h);
+    return;
+}
+
 void SH1106_setup_display_layout(uint8_t *buf, int fb_size, uint8_t mode)
 {
 #if 0    

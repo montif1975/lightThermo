@@ -17,6 +17,10 @@
 // GPIO for input button
 #define GPIO_INPUT_BUTTON       15
 
+// mainloop tick [ms]
+#define MAINLOOP_TICK           100
+#define NLOOP_PER_HOUR          NVALUE_PER_HOUR
+
 typedef struct hourly_data {
     int     value[NVALUE_PER_HOUR];
     uint8_t rd;
@@ -27,8 +31,8 @@ typedef struct hourly_data {
 } hourly_data_t;
 
 typedef struct dayly_data {
-    int value[NVALUE_PER_DAY];
-    uint8_t rd;
+    int     value[NVALUE_PER_DAY];
+    bool    full;
     uint8_t wr;
     int     max_value;
     int     min_value;
@@ -43,6 +47,8 @@ typedef struct LT_data {
     uint8_t         read_period;
     char            last_temp_read[10];
     char            last_hum_read[10];
+    int             last_tick;
+    int             nloop;
     hourly_data_t   temp_hours;
     hourly_data_t   hum_hours;
     daily_data_t    temp_day;

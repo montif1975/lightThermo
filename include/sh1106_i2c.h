@@ -81,11 +81,13 @@
 #define DSPLY_MODE_RT_MES_ICONT_Y   (DSPLY_MODE_RT_MES_DESCR_Y + FONT_HIGH_16)
 #define DSPLY_MODE_RT_MES_ICONH_Y   (DSPLY_MODE_RT_MES_ICONT_Y + FONT_HIGH_16)
 
+#define LAST24H_T_FIRST_PAGE        2
 #define DSPLY_MODE_LAST24H_T_DES_Y  0
 #define DSPLY_MODE_LAST24H_T_MIN_Y  (DSPLY_MODE_LAST24H_T_DES_Y + FONT_HIGH_16)
 #define DSPLY_MODE_LAST24H_T_MAX_Y  (DSPLY_MODE_LAST24H_T_MIN_Y + FONT_HIGH_16)
 #define DSPLY_MODE_LAST24H_T_AVG_Y  (DSPLY_MODE_LAST24H_T_MAX_Y + FONT_HIGH_16)
 
+#define LAST24H_H_FIRST_PAGE        LAST24H_T_FIRST_PAGE
 #define DSPLY_MODE_LAST24H_H_DES_Y  0
 #define DSPLY_MODE_LAST24H_H_MIN_Y  (DSPLY_MODE_LAST24H_H_DES_Y + FONT_HIGH_16)
 #define DSPLY_MODE_LAST24H_H_MAX_Y  (DSPLY_MODE_LAST24H_H_MIN_Y + FONT_HIGH_16)
@@ -124,6 +126,8 @@ void SH1106_full_render(uint8_t *buf);
 int SH1106_write_string(uint8_t *buf, int16_t x, int16_t y, char *str, uint8_t font_l, uint8_t font_h);
 int SH1106_display_temperature(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);
 int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font_h);
+void SH1106_display_t_stats(uint8_t *buf,int max,int min,int avg,uint8_t font_l, uint8_t font_h);
+void SH1106_display_h_stats(uint8_t *buf,int max,int min,int avg,uint8_t font_l, uint8_t font_h);
 int SH1106_write_icon(uint8_t *buf, int16_t x, int16_t y, uint8_t id_icon, uint8_t font_l, uint8_t font_h);
 void SH1106_setup_display_layout(uint8_t *buf, int fb_size, uint8_t mode);
 void SH1106_show_boot_info(uint8_t *buf,int fb_size,char *prg_vers,char *sens_type);
