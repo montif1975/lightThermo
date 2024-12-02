@@ -61,38 +61,86 @@
 #define FONT_WIDTH_16               16
 #define FONT_WIDTH_24               24
 
-// TODO: to be change with new layout
 // Definition of display areas
-// build the entire display layout (status bar + info area + extra info area)
+// REALTIME MEASURE
 // __________________
-// |_____|_____|____|   2 pages - Status Bar (status + ID + Connection state)
-// |                |   4 pages - Info Area
+// |________________|   1 page  - blank (future use)
+// |                |   2 pages - Description Area
 // |________________|
-// |________________|   2 pages - extra info area
-//  
+// |                |   2 pages - TEMPERATURE INFO
+// |________________|
+// |                |   2 pages - HUMIDITY INFO
+// |________________|   
+// |________________|   1 page  - blank (future use) 
+// 
+#if 0
 #define FIRST_PAGE_STATUS_BAR       1
 #define NPAGE_STATUS_BAR            2
 #define FIRST_PAGE_INFO_AREA        (FIRST_PAGE_STATUS_BAR + NPAGE_STATUS_BAR)
 #define NPAGE_INFO_AREA             4
 #define FIRST_PAGE_EXTRA_INFO_AREA  (FIRST_PAGE_INFO_AREA + NPAGE_INFO_AREA)
 #define NPAGE_EXTRA_INFO_AREA       1
+#else
+#define RT_FIRST_PAGE_DESCR         1
+#define RT_NPAGE_DESCR              2
+#define RT_FIRST_PAGE_INFO_T        (RT_FIRST_PAGE_DESCR + RT_NPAGE_DESCR)
+#define RT_NPAGE_INFO_T             2
+#define RT_FIRST_PAGE_INFO_H        (RT_FIRST_PAGE_INFO_T + RT_NPAGE_INFO_T)
+#define RT_NPAGE_INFO_H             2
+#define RT_FIRST_PAGE_BLANK         (RT_FIRST_PAGE_INFO_H + RT_NPAGE_INFO_H)
+#endif
 
 #define DSPLY_MODE_RT_MES_DESCR_Y   8
 #define DSPLY_MODE_RT_MES_ICONT_Y   (DSPLY_MODE_RT_MES_DESCR_Y + FONT_HIGH_16)
 #define DSPLY_MODE_RT_MES_ICONH_Y   (DSPLY_MODE_RT_MES_ICONT_Y + FONT_HIGH_16)
 
-#define LAST24H_T_FIRST_PAGE        2
-#define DSPLY_MODE_LAST24H_T_DES_Y  0
-#define DSPLY_MODE_LAST24H_T_MIN_Y  (DSPLY_MODE_LAST24H_T_DES_Y + FONT_HIGH_16)
-#define DSPLY_MODE_LAST24H_T_MAX_Y  (DSPLY_MODE_LAST24H_T_MIN_Y + FONT_HIGH_16)
-#define DSPLY_MODE_LAST24H_T_AVG_Y  (DSPLY_MODE_LAST24H_T_MAX_Y + FONT_HIGH_16)
+// LAST 24 H TEMPERATURE
+// __________________
+// |                |   2 pages - Description Area
+// |________________|
+// |                |   2 pages - MIN TEMP   
+// |________________|
+// |                |   2 pages - MAX TEMP
+// |________________|
+// |                |   2 pages - AVG TEMP
+// |________________|   
+// 
+#define L24_T_FIRST_PAGE_DESCR          0
+#define L24_T_NPAGE_DESCR               2
+#define L24_T_FIRST_PAGE_INFO_MIN_T     (L24_T_FIRST_PAGE_DESCR + L24_T_NPAGE_DESCR)
+#define L24_T_NPAGE_INFO_MIN_T          2
+#define L24_T_FIRST_PAGE_INFO_MAX_T     (L24_T_FIRST_PAGE_INFO_MIN_T + L24_T_NPAGE_INFO_MIN_T)
+#define L24_T_NPAGE_INFO_MAX_T          2
+#define L24_T_FIRST_PAGE_INFO_AVG_T     (L24_T_FIRST_PAGE_INFO_MAX_T + L24_T_NPAGE_INFO_MAX_T)
+#define DSPLY_MODE_LAST24H_T_DES_Y      0
+#define DSPLY_MODE_LAST24H_T_MIN_Y      (DSPLY_MODE_LAST24H_T_DES_Y + FONT_HIGH_16)
+#define DSPLY_MODE_LAST24H_T_MAX_Y      (DSPLY_MODE_LAST24H_T_MIN_Y + FONT_HIGH_16)
+#define DSPLY_MODE_LAST24H_T_AVG_Y      (DSPLY_MODE_LAST24H_T_MAX_Y + FONT_HIGH_16)
 
-#define LAST24H_H_FIRST_PAGE        LAST24H_T_FIRST_PAGE
-#define DSPLY_MODE_LAST24H_H_DES_Y  0
-#define DSPLY_MODE_LAST24H_H_MIN_Y  (DSPLY_MODE_LAST24H_H_DES_Y + FONT_HIGH_16)
-#define DSPLY_MODE_LAST24H_H_MAX_Y  (DSPLY_MODE_LAST24H_H_MIN_Y + FONT_HIGH_16)
-#define DSPLY_MODE_LAST24H_H_AVG_Y  (DSPLY_MODE_LAST24H_H_MAX_Y + FONT_HIGH_16)
 
+// LAST 24 H HUMIDITY
+// __________________
+// |                |   2 pages - Description Area
+// |________________|
+// |                |   2 pages - MIN HUMIDITY   
+// |________________|
+// |                |   2 pages - MAX HUMIDITY
+// |________________|
+// |                |   2 pages - AVG HUMIDITY
+// |________________|   
+// 
+#define L24_H_FIRST_PAGE_DESCR          0
+#define L24_H_NPAGE_DESCR               2
+#define L24_H_FIRST_PAGE_INFO_MIN_H     (L24_H_FIRST_PAGE_DESCR + L24_H_NPAGE_DESCR)
+#define L24_H_NPAGE_INFO_MIN_H          2
+#define L24_H_FIRST_PAGE_INFO_MAX_H     (L24_H_FIRST_PAGE_INFO_MIN_H + L24_H_NPAGE_INFO_MIN_H)
+#define L24_H_NPAGE_INFO_MAX_H          2
+#define L24_H_FIRST_PAGE_INFO_AVG_H     (L24_H_FIRST_PAGE_INFO_MAX_H + L24_H_NPAGE_INFO_MAX_H)
+
+#define DSPLY_MODE_LAST24H_H_DES_Y      0
+#define DSPLY_MODE_LAST24H_H_MIN_Y      (DSPLY_MODE_LAST24H_H_DES_Y + FONT_HIGH_16)
+#define DSPLY_MODE_LAST24H_H_MAX_Y      (DSPLY_MODE_LAST24H_H_MIN_Y + FONT_HIGH_16)
+#define DSPLY_MODE_LAST24H_H_AVG_Y      (DSPLY_MODE_LAST24H_H_MAX_Y + FONT_HIGH_16)
 
 enum sh1106_area_id {
     SH1106_AREA_STATUS_BAR_ID,

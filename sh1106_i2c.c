@@ -390,6 +390,14 @@ static inline void SH1106_clean_area(uint8_t *buf, uint16_t x_start,uint16_t x_e
         // start and end on the same line
         for(i=x_start; i<x_end; i++)
             buf[i] = 0x0;
+        if(y_high == FONT_HIGH_16)
+        {
+            // need to cancel a second row
+            x_start += SH1106_WIDTH;
+            x_end += SH1106_WIDTH;
+            for(i=x_start; i<x_end; i++)
+                buf[i] = 0x0;
+        }
     }
     else
     {
@@ -492,7 +500,7 @@ static int SH1106_write_char(uint8_t *buf, int16_t x, int16_t y, uint8_t ch, uin
     if (font_h == FONT_HIGH_8)
         ch = toupper(ch);
     idx = SH1106_get_font_index(ch, font_h);
-    fb_idx = y * SH1106_WIDTH + x;
+    fb_idx = (y * SH1106_WIDTH) + x;
 
     switch (font_h)
     {
@@ -576,13 +584,13 @@ int SH1106_display_temperature(uint8_t *buf,char *str, uint8_t font_l, uint8_t f
     x_start_pos = (nchar - (strlen(str) + 1))*font_l;
     PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
     // calculate the position in the buffer
-    x_start_buf = (FIRST_PAGE_INFO_AREA * SH1106_WIDTH) + x_start_pos;
+    x_start_buf = (RT_FIRST_PAGE_INFO_T * SH1106_WIDTH) + x_start_pos;
     PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
 
     // clean the line before start point to delete previous value
     // skip first character where is displayed an icon
-    SH1106_clean_area(buf,((FIRST_PAGE_INFO_AREA * SH1106_WIDTH) + font_l),x_start_buf,font_h);
-    ret = SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*FIRST_PAGE_INFO_AREA,str,font_l,font_h); 
+    SH1106_clean_area(buf,((RT_FIRST_PAGE_INFO_T * SH1106_WIDTH) + font_l),x_start_buf,font_h);
+    ret = SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT * RT_FIRST_PAGE_INFO_T,str,font_l,font_h); 
 
     return ret;
 }
@@ -609,13 +617,13 @@ int SH1106_display_humidity(uint8_t *buf,char *str, uint8_t font_l, uint8_t font
     x_start_pos = (nchar - (strlen(str) + 1))*font_l;
     PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
     // calculate the position in the buffer
-    x_start_buf = ((FIRST_PAGE_INFO_AREA + 2) * SH1106_WIDTH) + x_start_pos;
+    x_start_buf = (RT_FIRST_PAGE_INFO_H * SH1106_WIDTH) + x_start_pos;
     PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
 
     // clean the line before start point to delete previous value
     // skip first character where is displayed an icon
-    SH1106_clean_area(buf,(((FIRST_PAGE_INFO_AREA + 2) * SH1106_WIDTH) + font_l),x_start_buf,font_h);
-    ret = SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*(FIRST_PAGE_INFO_AREA + 2),str,font_l,font_h); 
+    SH1106_clean_area(buf,((RT_FIRST_PAGE_INFO_H * SH1106_WIDTH) + font_l),x_start_buf,font_h);
+    ret = SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT * RT_FIRST_PAGE_INFO_H,str,font_l,font_h); 
 
     return ret;
 }
@@ -641,9 +649,9 @@ void SH1106_display_t_stats(uint8_t *buf,int max,int min,int avg,uint8_t font_l,
 
     // calculate the number of characters/icons that fit into single line
     nchar = SH1106_WIDTH / font_l;
-    if((nchar < (strlen(str_max) + 1)) ||
-       (nchar < (strlen(str_min) + 1)) ||
-       (nchar < (strlen(str_avg) + 1)))
+    if((nchar < (strlen(str_max) + strlen(DISPLAY_LAST24H[1]))) ||
+       (nchar < (strlen(str_min) + strlen(DISPLAY_LAST24H[0]))) ||
+       (nchar < (strlen(str_avg) + strlen(DISPLAY_LAST24H[2]))))
     {
         // one of the strings doesn't fit in a single line
         printf("%s - Error in str len\n",__FUNCTION__);
@@ -657,12 +665,12 @@ void SH1106_display_t_stats(uint8_t *buf,int max,int min,int avg,uint8_t font_l,
     x_start_pos = (nchar - (strlen(str_min) + 1))*font_l;
     PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
     // calculate the position in the buffer
-    x_start_buf = (FIRST_PAGE_INFO_AREA * SH1106_WIDTH) + x_start_pos;
+    x_start_buf = (L24_T_FIRST_PAGE_INFO_MIN_T * SH1106_WIDTH) + x_start_pos;
     PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
     // clean the line before start point to delete previous value
     // skip first character where is displayed an icon
-    SH1106_clean_area(buf,((LAST24H_T_FIRST_PAGE * SH1106_WIDTH) + font_l),x_start_buf,font_h);
-    SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*(LAST24H_T_FIRST_PAGE),str_min,font_l,font_h); 
+    SH1106_clean_area(buf,((L24_T_FIRST_PAGE_INFO_MIN_T * SH1106_WIDTH) + (font_l * strlen(DISPLAY_LAST24H[0]))),x_start_buf,font_h);
+    SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT * L24_T_FIRST_PAGE_INFO_MIN_T,str_min,font_l,font_h); 
 
     // MAX
     // calculate the position of first characters aligning to the right
@@ -670,12 +678,12 @@ void SH1106_display_t_stats(uint8_t *buf,int max,int min,int avg,uint8_t font_l,
     x_start_pos = (nchar - (strlen(str_max) + 1))*font_l;
     PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
     // calculate the position in the buffer
-    x_start_buf = ((FIRST_PAGE_INFO_AREA + 2)* SH1106_WIDTH) + x_start_pos;
+    x_start_buf = (L24_T_FIRST_PAGE_INFO_MAX_T * SH1106_WIDTH) + x_start_pos;
     PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
     // clean the line before start point to delete previous value
     // skip first character where is displayed an icon
-    SH1106_clean_area(buf,(((LAST24H_T_FIRST_PAGE + 2) * SH1106_WIDTH) + font_l),x_start_buf,font_h);
-    SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*(LAST24H_T_FIRST_PAGE + 2),str_max,font_l,font_h); 
+    SH1106_clean_area(buf,((L24_T_FIRST_PAGE_INFO_MAX_T * SH1106_WIDTH) + (font_l * strlen(DISPLAY_LAST24H[1]))),x_start_buf,font_h);
+    SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT *L24_T_FIRST_PAGE_INFO_MAX_T,str_max,font_l,font_h); 
 
     // AVG
     // calculate the position of first characters aligning to the right
@@ -683,12 +691,12 @@ void SH1106_display_t_stats(uint8_t *buf,int max,int min,int avg,uint8_t font_l,
     x_start_pos = (nchar - (strlen(str_avg) + 1))*font_l;
     PRINT_SH1106_DEBUG("x_start_pos=%d\n",x_start_pos);
     // calculate the position in the buffer
-    x_start_buf = ((FIRST_PAGE_INFO_AREA + 4)* SH1106_WIDTH) + x_start_pos;
+    x_start_buf = (L24_T_FIRST_PAGE_INFO_AVG_T * SH1106_WIDTH) + x_start_pos;
     PRINT_SH1106_DEBUG("x_start_buf=%d\n",x_start_buf);
     // clean the line before start point to delete previous value
     // skip first character where is displayed an icon
-    SH1106_clean_area(buf,(((LAST24H_T_FIRST_PAGE + 4) * SH1106_WIDTH) + font_l),x_start_buf,font_h);
-    SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT*(LAST24H_T_FIRST_PAGE + 4),str_avg,font_l,font_h); 
+    SH1106_clean_area(buf,((L24_T_FIRST_PAGE_INFO_AVG_T * SH1106_WIDTH) + (font_l * strlen(DISPLAY_LAST24H[2]))),x_start_buf,font_h);
+    SH1106_write_string(buf,x_start_pos,SH1106_PAGE_HEIGHT * L24_T_FIRST_PAGE_INFO_AVG_T,str_avg,font_l,font_h); 
 
     return;
 }
@@ -713,28 +721,15 @@ void SH1106_setup_display_layout(uint8_t *buf, int fb_size, uint8_t mode)
     {
         case DISPLAY_MODE_RT_MES:
             // __________________
-            // |________________|   2 pages - Description
-            // |                |   4 pages - Info Area
+            // |________________|   1 page  - blank (future use)
+            // |                |   2 pages - Description Area
             // |________________|
-            // |________________|   2 pages - extra info area (future use)
-            //  
-            // build orizontal line between Description Area and Info area
-#if 0
-            for (i=128; i<256; i++)
-                buf[i] = 0x80;
-            buf[176] = 0xFF;
-            buf[224] = 0xFF;
-            // build orizontal line between Info area and extra info bar
-            for (i=768; i<896; i++)
-                buf[i] = 0x01;
-            // add description for this mode
-            SH1106_write_string(buf, 16, 0, DISPLAY_DESCR[mode],FONT_WIDTH_12,FONT_HIGH_16);
-            // add icons to the Info Area
-            SH1106_write_icon(buf, 0, 16, SH1106_ICON_TERMOMETER, FONT_WIDTH_12, FONT_HIGH_16);
-            SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 16, SH1106_ICON_CELSIUS, FONT_WIDTH_12, FONT_HIGH_16);
-            SH1106_write_icon(buf, 0, 32, SH1106_ICON_DROP, FONT_WIDTH_12, FONT_HIGH_16);
-            SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), 32, SH1106_ICON_PERCENT, FONT_WIDTH_12, FONT_HIGH_16);
-#else
+            // |                |   2 pages - TEMPERATURE INFO
+            // |________________|
+            // |                |   2 pages - HUMIDITY INFO
+            // |________________|   
+            // |________________|   1 page  - blank (future use) 
+            // 
             // add description for this mode
             SH1106_write_string(buf, 16, DSPLY_MODE_RT_MES_DESCR_Y, DISPLAY_DESCR[mode],FONT_WIDTH_12,FONT_HIGH_16);
             // add icons to the Info Area
@@ -742,10 +737,20 @@ void SH1106_setup_display_layout(uint8_t *buf, int fb_size, uint8_t mode)
             SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), DSPLY_MODE_RT_MES_ICONT_Y, SH1106_ICON_CELSIUS, FONT_WIDTH_12, FONT_HIGH_16);
             SH1106_write_icon(buf, 0, DSPLY_MODE_RT_MES_ICONH_Y, SH1106_ICON_DROP, FONT_WIDTH_12, FONT_HIGH_16);
             SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), DSPLY_MODE_RT_MES_ICONH_Y, SH1106_ICON_PERCENT, FONT_WIDTH_12, FONT_HIGH_16);
-#endif
             break;
 
         case DISPLAY_MODE_SHOW_LAST_24H_T:
+            // __________________
+            // |                |   2 pages - Description Area
+            // |________________|
+            // |                |   2 pages - MIN TEMP   
+            // |________________|
+            // |                |   2 pages - MAX TEMP
+            // |________________|
+            // |                |   2 pages - AVG TEMP
+            // |________________|   
+            // 
+            // add description for this mode
             SH1106_write_string(buf, 0, DSPLY_MODE_LAST24H_T_DES_Y, DISPLAY_DESCR[mode],FONT_WIDTH_12,FONT_HIGH_16);
             SH1106_write_string(buf, 0, DSPLY_MODE_LAST24H_T_MIN_Y, DISPLAY_LAST24H[0],FONT_WIDTH_12,FONT_HIGH_16);
             SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), DSPLY_MODE_LAST24H_T_MIN_Y, SH1106_ICON_CELSIUS, FONT_WIDTH_12, FONT_HIGH_16);          
@@ -756,6 +761,17 @@ void SH1106_setup_display_layout(uint8_t *buf, int fb_size, uint8_t mode)
             break;
         
         case DISPLAY_MODE_SHOW_LAST_24H_H:
+            // __________________
+            // |                |   2 pages - Description Area
+            // |________________|
+            // |                |   2 pages - MIN HUMIDITY   
+            // |________________|
+            // |                |   2 pages - MAX HUMIDITY
+            // |________________|
+            // |                |   2 pages - AVG HUMIDITY
+            // |________________|   
+            // 
+            // add description for this mode
             SH1106_write_string(buf, 0, DSPLY_MODE_LAST24H_H_DES_Y, DISPLAY_DESCR[mode],FONT_WIDTH_12,FONT_HIGH_16);
             SH1106_write_string(buf, 0, DSPLY_MODE_LAST24H_H_MIN_Y, DISPLAY_LAST24H[0],FONT_WIDTH_12,FONT_HIGH_16);
             SH1106_write_icon(buf, (SH1106_WIDTH - FONT_WIDTH_12), DSPLY_MODE_LAST24H_H_MIN_Y, SH1106_ICON_PERCENT, FONT_WIDTH_12, FONT_HIGH_16);
@@ -766,7 +782,7 @@ void SH1106_setup_display_layout(uint8_t *buf, int fb_size, uint8_t mode)
             break;
         
         default:
-            printf("Unknown display mode (%d)\n", mode);
+            PRINT_SH1106_DEBUG("Unknown display mode (%d)\n", mode);
             break;
     }
 

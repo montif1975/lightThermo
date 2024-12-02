@@ -3,9 +3,16 @@
  * the output usefull for debug purpose.
 */
 
+#define DEBUG_GEN
 //#define DEBUG_FONTS
 //#define DEBUG_DISPLAY
 //#define DEBUG_I2C
+
+#ifdef DEBUG_GEN
+#define PRINT_GEN_DEBUG(format, ...)   printf(format, __VA_ARGS__)
+#else
+#define PRINT_GEN_DEBUG(format, ...)
+#endif
 
 #ifdef DEBUG_DISPLAY
 #define PRINT_SH1106_DEBUG(format, ...)   printf(format, __VA_ARGS__)
@@ -18,6 +25,8 @@
 #else
 #define PRINT_I2C_DEBUG(format, ...)
 #endif
+
+
 
 #define NVALUE_PER_HOUR             60
 #define NVALUE_PER_DAY              24
