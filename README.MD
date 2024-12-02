@@ -5,7 +5,8 @@ Simple Temperature and Humidity sensor with 1.3" OLED display.
 Based on Raspberry PICO board (with RP2040 microprocessor).  
 I know, there are a lot of these devices build on Raspberry PICO
 therefore I've added a serial log on UART port (text or CSV format)
-in order to use it as a data logger too.   
+in order to use it as a data logger too and collection of statistic
+that can be showed on the display using a push button.  
 
 ## Hardware configuration
 
@@ -14,6 +15,11 @@ There are three main devices:
 - the 1.3" OLED display with SH1106 driver and I2C interface  
   The display resolution is 128 x 64 pixel
 - the temperature and humidity sensor DHT20 with I2C interface
+and a push button in order to change the display view between
+three different views:
+- real time measure of temperature and humidity
+- last 24 hours min, max and average value of temperature
+- last 24 hours min, max and average value of humidity
 
 ## Connections
 
@@ -48,6 +54,16 @@ In the image below an example of how the real-time measurement is
 displayed on the OLED:
 ![lightThermo in action](/resorces/lt2.png "a simple demo")
 
+Here how the statistics are displayed (press to the button to change view mode)
+![lightThermo in action](/resorces/show_temp_stats.png "a simple demo")
+
 Here the output of the UART interface (in this case in CSV format
 *Temperature;Humidity*)
 ![lightThermo in action](/resorces/serial_output.jpg "a simple demo")
+
+## Next development
+
+I'm working on porting this project to Pico W to have a wireless
+version of the sensor. I also want to add a little eeprom where 
+store some configuration parameters (sush as °C or °F) that can
+be changed via web interface.
