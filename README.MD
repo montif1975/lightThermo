@@ -15,6 +15,7 @@ There are three main devices:
 - the 1.3" OLED display with SH1106 driver and I2C interface  
   The display resolution is 128 x 64 pixel
 - the temperature and humidity sensor DHT20 with I2C interface
+
 and a push button in order to change the display view between
 three different views:
 - real time measure of temperature and humidity
@@ -55,7 +56,7 @@ displayed on the OLED:
 ![lightThermo in action](/resorces/lt2.png "a simple demo")
 
 Here how the statistics are displayed (press to the button to change view mode)
-![lightThermo in action](/resorces/show_temp_stats.png "a simple demo")
+![lightThermo in action](/resorces/show_temp_stats.jpg "a simple demo")
 
 Here the output of the UART interface (in this case in CSV format
 *Temperature;Humidity*)
