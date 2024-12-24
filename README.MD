@@ -53,7 +53,7 @@ I use AZ-Delivery FT232RL with putty on Window 11 PC and it works.
 
 In the image below an example of how the real-time measurement is
 displayed on the OLED:
-![lightThermo in action](/resorces/lt2.png "a simple demo")
+![lightThermo in action](/resorces/lt_realtime.jpg "a simple demo")
 
 Here how the statistics are displayed (press to the button to change view mode)
 ![lightThermo in action](/resorces/show_temp_stats.jpg "a simple demo")
