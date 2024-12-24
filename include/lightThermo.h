@@ -1,4 +1,4 @@
-#define PRG_VERSION             "004"
+#define PRG_VERSION             "006"
 #define SENS_TYPE               "DHT20"
 
 // UART PARAMETERS

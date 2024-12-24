@@ -57,6 +57,9 @@
 char rx_commands[NMAX_CMD_STRING];
 bool cmd_received;
 bool button_pushed;
+volatile bool timer_fired = false;
+volatile int tick = 0;
+
 
 /*
  * Global functions
@@ -329,6 +332,17 @@ void lt_show_h_stats(uint8_t *buf,LT_data_t *data)
     return;
 }
 
+/**
+ * Function: repeat_timer_callback();
+ * Timer callback
+ */
+bool repeat_timer_callback(struct repeating_timer *timer)
+{
+    timer_fired = true;
+    tick++;
+    return true;
+}
+
 /*
  * main()
 */
@@ -340,8 +354,10 @@ int main(int argc, char *argv[])
     char appo_string[10];
     int baudrate = 0;
     int uart_irq;
-    int tick = 0;
     LT_data_t LT_data;
+    volatile int64_t app_tick, prev_tick;
+    volatile int64_t check_loop_pre, check_loop_after;
+    struct repeating_timer timer;
 
     stdio_init_all();
 
@@ -474,10 +490,24 @@ int main(int argc, char *argv[])
 
         LT_data.status = LT_STATUS_RT_MES;
 
+        // acquire us ticks to measure the time drift
+        prev_tick = time_us_64();
+        add_repeating_timer_ms(-MAINLOOP_TICK,repeat_timer_callback,NULL,&timer);
+        check_loop_pre = prev_tick;
+        check_loop_after = 0;
+
         do
         {
-            // wakeup every 100 ms
-            sleep_ms(MAINLOOP_TICK);
+            while(!timer_fired)
+            {
+                tight_loop_contents();
+            }
+            // timer fired, check how many ms are left
+            app_tick = time_us_64();
+//            PRINT_GEN_DEBUG("tick = %d - Delta [us] = %lld\n",tick,(app_tick - prev_tick));
+            prev_tick = app_tick;
+            timer_fired = false;
+
             // update watchdog to avoid unexpected restart
             watchdog_update();
 
@@ -514,11 +544,20 @@ int main(int argc, char *argv[])
                     PRINT_GEN_DEBUG("Ignore GPIO callback too close to the previous one (anti-debouncing) - tick=%d last_tick=%d\n",tick,LT_data.last_tick);
                 button_pushed = false;
             }
-
+#if 0
+            // now tick is incremented inside the timer callback()
             tick++;
+#endif
             // NOTE: read_period is expressed in minutes
             if (tick == (int)(((float)LT_data.read_period*60*1000)/MAINLOOP_TICK))
             {
+                // reset the tick variable before to start the elaboration to don't
+                // consider the time of the sensor read and display update in the polling
+                // timeout. The tick is incremented in the callback function of the hardware
+                // timer therefore if this routine is longer than a single tick timer, 
+                // it doesn't affect the total polling timer.
+                tick = 0;
+                LT_data.last_tick = 0;
                 temperature = 0;
                 humidity = 0;
                 LT_data.nloop++;
@@ -550,8 +589,9 @@ int main(int argc, char *argv[])
                     lt_show_h_stats(fb,&LT_data);
                 SH1106_full_render(fb);
 
-                tick = 0;
-                LT_data.last_tick = 0;
+                check_loop_after = time_us_64();
+                PRINT_GEN_DEBUG("Polling duration [ms]= %lld\n", ((check_loop_after - check_loop_pre)/1000));
+                check_loop_pre = check_loop_after;
             }
         } while (true);
     }
