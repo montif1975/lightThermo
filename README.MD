@@ -53,19 +53,19 @@ I use AZ-Delivery FT232RL with putty on Window 11 PC and it works.
 
 In the image below an example of how the real-time measurement is
 displayed on the OLED:
-![lightThermo in action](/resorces/lt_realtime.jpg "the realtime view")
+![lightThermo in action](/resources/lt_realtime.jpg "the realtime view")
 
 Here how the statistics are displayed (press to the button to change view mode)
-![lightThermo in action](/resorces/show_temp_stats.jpg "the statistic view")
+![lightThermo in action](/resources/show_temp_stats.jpg "the statistic view")
 
 Here the output of the UART interface (in this case in CSV format
 *Temperature;Humidity*)
-![lightThermo in action](/resorces/serial_output.jpg "the CSV format out log")
+![lightThermo in action](/resources/serial_output.jpg "the CSV format out log")
 
 ## Battery powered prototype
 
 In the image below my prototype with 3 AAA alcanine battery power supply:
-![lightThermo prototype](/resorces/lt_batt_prototype.jpg "a battery powered prototype")
+![lightThermo prototype](/resources/lt_batt_prototype.jpg "a battery powered prototype")
 
 
 ## Next development
