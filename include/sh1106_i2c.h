@@ -1,9 +1,9 @@
 /* SH1106 OLED DISPLAY DRIVER VIA I2C*/
 #include "hardware/i2c.h"
 
-#define I2C_PORT_OLED               i2c0
-#define I2C_SDA_OLED                8
-#define I2C_SCL_OLED                9
+#define I2C_PORT_OLED               i2c1
+#define I2C_SDA_OLED                18
+#define I2C_SCL_OLED                19
 
 #define SH1106_HEIGHT               64
 #define SH1106_WIDTH                128 // internally is 132
