@@ -29,13 +29,13 @@ the I2C interface:
 - the display connections are:
     - *VDD* to PIN 36 of PICO (3V3)
     - *GND* to PIN 38 of PICO (GND)
-    - *SCK* to PIN 12 of PICO (GP9 = I2C0 SCL) 
-    - *SDA* to PIN 11 of PICO (GP8 = I2C0 SDA)
+    - *SDA* to PIN 24 of PICO (GP18 = I2C1 SDA)
+    - *SCL* to PIN 25 of PICO (GP19 = I2C1 SCL) 
 - the DHT20 sensor connections are:
     - *+* to PIN 36 of PICO (3V3)
     - *-* to PIN 38 of PICO (GND)
-    - *SCL* to PIN 25 of PICO (GP19 = I2C1 SCL)
-    - *SDA* to PIN 24 of PICO (GP18 = I2C1 SDA)  
+    - *SDA* to PIN 11 of PICO (GP08 = I2C0 SDA)  
+    - *SCL* to PIN 12 of PICO (GP09 = I2C0 SCL)
     
 Obviously, all connections can be changed and only one I2C channel
 can be used.
@@ -45,7 +45,6 @@ lightThermo.h file) so it's enough to connect the PIN 1 and 2 to an
 UART-to-USB converter to see the ouput on a terminal console on the PC.
 
 Be careful to use a 3.3V converter!
-
 
 I use AZ-Delivery FT232RL with putty on Window 11 PC and it works.
 
@@ -62,10 +61,20 @@ Here the output of the UART interface (in this case in CSV format
 *Temperature;Humidity*)
 ![lightThermo in action](/resources/serial_output.jpg "the CSV format out log")
 
-## Battery powered prototype
+## PCB carrier prototype
 
-In the image below my prototype with 3 AAA alcanine battery power supply:
-![lightThermo prototype](/resources/lt_batt_prototype.jpg "a battery powered prototype")
+I designed a PCB to connect all the components used in the lightThermo project. I printed and assembled several samples. The board includes pin sockets for the Raspberry Pi Pico and all I²C devices, making it compatible with any I²C device that uses the "+, -, SCL, SDA" pinout.
+
+The PCB and schematic were created using KiCad 9.0, and the Gerber files are available in my Project [lighThermo_pcb](https://github.com/montif1975/lightThermo_pcb).
+
+Below is a picture of the assembled PCB with all components mounted.
+![lightThermo prototype](/resources/lt-pcb.jpg "a carrier board for lightThermo")
+
+I also included a slot for a memory plugin developed as part of my Project [addon_eeprom_i2c](https://github.com/montif1975/addon_eeprom_i2c).
+
+On the PCB, the temperature sensor is connected to the I²C0 bus, while the OLED display and memory plugin are connected to the I²C1 bus.
+
+This simple PCB isn't limited to the lightThermo project—it can also be used for other small projects requiring up to three I²C devices.
 
 
 ## Next development
